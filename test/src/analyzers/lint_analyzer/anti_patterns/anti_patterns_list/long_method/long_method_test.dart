@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/anti_patterns/anti_patterns_list/long_method.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/metrics_list/source_lines_of_code/source_lines_of_code_metric.dart';
@@ -37,7 +36,7 @@ void main() {
       });
 
       final issues = LongMethod(
-        metricstTresholds: {SourceLinesOfCodeMetric.metricId: 25},
+        metricsThresholds: {SourceLinesOfCodeMetric.metricId: 25},
       ).check(unit, {}, {
         declarations.first: Report(
           location:
@@ -56,7 +55,7 @@ void main() {
       AntiPatternTestHelper.verifyInitialization(
         issues: issues,
         antiPatternId: 'long-method',
-        severity: Severity.none,
+        severity: Severity.warning,
       );
 
       AntiPatternTestHelper.verifyIssues(
@@ -70,40 +69,6 @@ void main() {
         ],
         verboseMessage: [
           "Based on configuration of this package, we don't recommend write a function longer than 25 lines with code.",
-        ],
-      );
-
-      final fallbackIssues = LongMethod().check(unit, {}, {
-        declarations.first: Report(
-          location:
-              nodeLocation(node: declarations.first.declaration, source: unit),
-          metrics: [
-            buildMetricValueStub(
-              id: SourceLinesOfCodeMetric.metricId,
-              value: 55,
-            ),
-          ],
-          declaration: declarations.first.declaration,
-        ),
-      });
-
-      AntiPatternTestHelper.verifyInitialization(
-        issues: fallbackIssues,
-        antiPatternId: 'long-method',
-        severity: Severity.none,
-      );
-
-      AntiPatternTestHelper.verifyIssues(
-        issues: fallbackIssues,
-        startOffsets: [0],
-        startLines: [1],
-        startColumns: [1],
-        endOffsets: [1309],
-        messages: [
-          'Long function. This function contains 55 lines with code.',
-        ],
-        verboseMessage: [
-          'Anti pattern works in deprecated mode. Please configure source-lines-of-code metric. For detailed information please read documentation.',
         ],
       );
     });
@@ -129,7 +94,7 @@ void main() {
       });
 
       final issues = LongMethod(
-        metricstTresholds: {SourceLinesOfCodeMetric.metricId: 25},
+        metricsThresholds: {SourceLinesOfCodeMetric.metricId: 25},
       ).check(unit, {}, {
         declarations.first: Report(
           location:

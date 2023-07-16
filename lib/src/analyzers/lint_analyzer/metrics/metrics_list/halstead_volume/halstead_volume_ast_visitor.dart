@@ -9,16 +9,16 @@ class HalsteadVolumeAstVisitor extends RecursiveAstVisitor<void> {
   final _operators = <String, int>{};
   final _operands = <String, int>{};
 
-  /// the number of operators
+  /// The number of operators.
   int get operators => _operators.values.sum;
 
-  /// the number of unique operators
+  /// The number of unique operators.
   int get uniqueOperators => _operators.keys.length;
 
-  /// the number of operands
+  /// The number of operands.
   int get operands => _operands.values.sum;
 
-  /// the number of unique operands
+  /// The number of unique operands.
   int get uniqueOperands => _operands.keys.length;
 
   @override
@@ -45,7 +45,8 @@ class HalsteadVolumeAstVisitor extends RecursiveAstVisitor<void> {
     var token = firstToken;
     while (token != lastToken && token != null) {
       if (token.isOperator) {
-        _operators[token.type.name] = (_operators[token.type.name] ?? 0) + 1;
+        final name = token.type.name;
+        _operators[name] = (_operators[name] ?? 0) + 1;
       }
 
       if (token.isIdentifier) {

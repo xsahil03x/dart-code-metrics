@@ -1,4 +1,4 @@
-part of 'component_annotation_arguments_ordering.dart';
+part of 'component_annotation_arguments_ordering_rule.dart';
 
 class _Visitor extends SimpleAstVisitor<List<_ArgumentInfo>> {
   final List<_ArgumentGroup> _groupsOrder;
@@ -16,7 +16,7 @@ class _Visitor extends SimpleAstVisitor<List<_ArgumentInfo>> {
   }
 
   List<_ArgumentInfo> _visitAnnotation(Annotation node) {
-    final _argumentsInfo = <_ArgumentInfo>[];
+    final argumentsInfo = <_ArgumentInfo>[];
 
     final arguments = node.arguments?.arguments.whereType<NamedExpression>();
 
@@ -26,15 +26,15 @@ class _Visitor extends SimpleAstVisitor<List<_ArgumentInfo>> {
         final group = _ArgumentGroup.parseArgumentName(name);
 
         if (group != null && _groupsOrder.contains(group)) {
-          _argumentsInfo.add(_ArgumentInfo(
+          argumentsInfo.add(_ArgumentInfo(
             argument: argument,
-            argumentOrder: _getOrder(group, _argumentsInfo),
+            argumentOrder: _getOrder(group, argumentsInfo),
           ));
         }
       }
     }
 
-    return _argumentsInfo;
+    return argumentsInfo;
   }
 
   _ArgumentOrder _getOrder(
@@ -71,7 +71,6 @@ class _Visitor extends SimpleAstVisitor<List<_ArgumentInfo>> {
       node.name.name == 'Component' && node.atSign.type == TokenType.AT;
 }
 
-@immutable
 class _ArgumentGroup {
   final String name;
   final Iterable<String> arguments;
@@ -139,7 +138,6 @@ class _ArgumentGroup {
       _groupsOrder.firstWhereOrNull((group) => group.arguments.contains(name));
 }
 
-@immutable
 class _ArgumentInfo {
   final NamedExpression argument;
   final _ArgumentOrder argumentOrder;
@@ -150,7 +148,6 @@ class _ArgumentInfo {
   });
 }
 
-@immutable
 class _ArgumentOrder {
   final bool isWrong;
   final _ArgumentGroup argumentGroup;

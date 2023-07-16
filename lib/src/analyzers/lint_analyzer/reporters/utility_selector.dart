@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:collection/collection.dart';
 
 import '../metrics/metric_utils.dart';
@@ -8,6 +6,7 @@ import '../metrics/metrics_list/maintainability_index_metric.dart';
 import '../metrics/metrics_list/maximum_nesting_level/maximum_nesting_level_metric.dart';
 import '../metrics/metrics_list/number_of_parameters_metric.dart';
 import '../metrics/metrics_list/source_lines_of_code/source_lines_of_code_metric.dart';
+import '../metrics/metrics_list/technical_debt/technical_debt_metric.dart';
 import '../metrics/models/metric_documentation.dart';
 import '../metrics/models/metric_value.dart';
 import '../metrics/models/metric_value_level.dart';
@@ -16,8 +15,6 @@ import '../models/lint_file_report.dart';
 import '../models/report.dart';
 import 'reporters_list/html/models/file_metrics_report.dart';
 import 'reporters_list/html/models/function_metrics_report.dart';
-
-double log2(num a) => log(a) / ln2;
 
 double avg(Iterable<num> it) => it.isNotEmpty ? it.sum / it.length : 0;
 
@@ -62,6 +59,17 @@ class UtilitySelector {
         .where((r) => isReportLevel(r.maximumNestingLevel.level))
         .length;
 
+    final technicalDeptMetric =
+        record.file?.metric(TechnicalDebtMetric.metricId);
+    final technicalDebt = technicalDeptMetric?.value.toDouble() ?? 0.0;
+    final technicalDebtViolations = record.file?.metrics
+            .where((value) =>
+                value.metricsId == TechnicalDebtMetric.metricId &&
+                isReportLevel(value.level))
+            .length ??
+        0;
+    final technicalDebtUnitType = technicalDeptMetric?.unitType;
+
     return FileMetricsReport(
       averageArgumentsCount: averageArgumentCount.round(),
       argumentsCountViolations: totalArgumentsCountViolations,
@@ -73,6 +81,9 @@ class UtilitySelector {
       sourceLinesOfCodeViolations: totalSourceLinesOfCodeViolations,
       averageMaximumNestingLevel: averageMaximumNestingLevel,
       maximumNestingLevelViolations: totalMaximumNestingLevelViolations,
+      technicalDebt: technicalDebt,
+      technicalDebtViolations: technicalDebtViolations,
+      technicalDebtUnitType: technicalDebtUnitType,
     );
   }
 
@@ -105,10 +116,15 @@ class UtilitySelector {
                 .round(),
         maximumNestingLevelViolations: lhs.maximumNestingLevelViolations +
             rhs.maximumNestingLevelViolations,
+        technicalDebt: lhs.technicalDebt + rhs.technicalDebt,
+        technicalDebtViolations:
+            lhs.technicalDebtViolations + rhs.technicalDebtViolations,
+        technicalDebtUnitType:
+            lhs.technicalDebtUnitType ?? rhs.technicalDebtUnitType,
       );
 }
 
-MetricValue<T> _buildMetricValueStub<T>({
+MetricValue<T> _buildMetricValueStub<T extends num>({
   required String id,
   required T value,
   EntityType type = EntityType.methodEntity,
@@ -119,9 +135,8 @@ MetricValue<T> _buildMetricValueStub<T>({
       documentation: MetricDocumentation(
         name: id,
         shortName: id.toUpperCase(),
-        brief: 'brief $id',
         measuredType: type,
-        recomendedThreshold: 0,
+        recommendedThreshold: 0,
       ),
       value: value,
       level: level,

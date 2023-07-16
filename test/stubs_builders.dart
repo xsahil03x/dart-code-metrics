@@ -15,9 +15,10 @@ import 'package:source_span/source_span.dart';
 
 class _DeclarationMock extends Mock implements Declaration {}
 
-MetricValue<T> buildMetricValueStub<T>({
+MetricValue<T> buildMetricValueStub<T extends num>({
   required String id,
   required T value,
+  String? unitType,
   EntityType type = EntityType.methodEntity,
   MetricValueLevel level = MetricValueLevel.none,
 }) =>
@@ -26,18 +27,18 @@ MetricValue<T> buildMetricValueStub<T>({
       documentation: MetricDocumentation(
         name: id,
         shortName: id.toUpperCase(),
-        brief: 'brief $id',
         measuredType: type,
-        recomendedThreshold: 0,
+        recommendedThreshold: 0,
       ),
       value: value,
+      unitType: unitType,
       level: level,
       comment: '',
     );
 
-Report buildRecordStub({
+Report buildReportStub({
   SourceSpanBase? location,
-  Iterable<MetricValue<num>> metrics = const [],
+  Iterable<MetricValue> metrics = const [],
 }) {
   const defaultMetricValues = [
     MetricValue<int>(
@@ -45,9 +46,8 @@ Report buildRecordStub({
       documentation: MetricDocumentation(
         name: 'metric1',
         shortName: 'MTR1',
-        brief: '',
         measuredType: EntityType.classEntity,
-        recomendedThreshold: 0,
+        recommendedThreshold: 0,
       ),
       value: 0,
       level: MetricValueLevel.none,
@@ -58,9 +58,8 @@ Report buildRecordStub({
       documentation: MetricDocumentation(
         name: 'metric2',
         shortName: 'MTR2',
-        brief: '',
         measuredType: EntityType.methodEntity,
-        recomendedThreshold: 0,
+        recommendedThreshold: 0,
       ),
       value: 1,
       level: MetricValueLevel.none,
@@ -78,7 +77,7 @@ Report buildRecordStub({
 
 Report buildFunctionRecordStub({
   SourceSpanBase? location,
-  Iterable<MetricValue<num>> metrics = const [],
+  Iterable<MetricValue> metrics = const [],
 }) {
   final defaultMetricValues = [
     buildMetricValueStub<int>(

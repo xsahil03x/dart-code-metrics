@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:meta/meta.dart';
+import 'package:path/path.dart';
 import 'package:source_span/source_span.dart';
 
 import '../../../../../reporters/models/json_reporter.dart';
@@ -12,34 +12,40 @@ import '../../../models/lint_file_report.dart';
 import '../../../models/replacement.dart';
 import '../../../models/report.dart';
 import '../../../models/summary_lint_report_record.dart';
+import '../../lint_report_params.dart';
 
 /// Lint JSON reporter.
 ///
 /// Use it to create reports in JSON format.
-@immutable
-class LintJsonReporter
-    extends JsonReporter<LintFileReport, SummaryLintReportRecord> {
+class LintJsonReporter extends JsonReporter<LintFileReport, LintReportParams> {
   const LintJsonReporter(IOSink output) : super(output, 2);
+
+  factory LintJsonReporter.toFile(String path, String rootFolder) {
+    final isAbsolutePath = isAbsolute(path);
+    final filePath = isAbsolutePath ? path : normalize(join(rootFolder, path));
+
+    final file = File(filePath.endsWith('.json') ? filePath : '$filePath.json');
+
+    return LintJsonReporter(file.openWrite());
+  }
 
   @override
   Future<void> report(
     Iterable<LintFileReport> records, {
-    Iterable<SummaryLintReportRecord> summary = const [],
+    LintReportParams? additionalParams,
   }) async {
     if (records.isEmpty) {
       return;
     }
 
+    final summary = additionalParams?.summary;
+
     final encodedReport = json.encode({
       'formatVersion': formatVersion,
       'timestamp': getTimestamp(),
       'records': records.map(_lintFileReportToJson).toList(),
-      if (summary.isNotEmpty)
-        'summary': summary
-            .map((record) => _summaryLintReportRecordToJson(
-                  record as SummaryLintReportRecord<Object>,
-                ))
-            .toList(),
+      if (summary != null && summary.isNotEmpty)
+        'summary': summary.map(_summaryLintReportRecordToJson).toList(),
     });
 
     output.write(encodedReport);
@@ -47,6 +53,7 @@ class LintJsonReporter
 
   Map<String, Object> _lintFileReportToJson(LintFileReport report) => {
         'path': report.relativePath,
+        'fileMetrics': _metricValuesToJson(report.file?.metrics),
         'classes': _reportToJson(report.classes),
         'functions': _reportToJson(report.functions),
         'issues': _issueToJson(report.issues),
@@ -57,16 +64,12 @@ class LintJsonReporter
     SummaryLintReportRecord<Object> record,
   ) {
     final recordValue = record.value;
-    final recordViolations = record.violations;
 
     return {
       'status': record.status.toString(),
       'title': record.title,
       'value': recordValue is Iterable ? recordValue.toList() : recordValue,
-      if (recordViolations != null)
-        'violations': recordViolations is Iterable
-            ? recordViolations.toList()
-            : recordViolations,
+      'violations': record.violations,
     };
   }
 
@@ -100,14 +103,16 @@ class LintJsonReporter
       };
 
   List<Map<String, Object>> _metricValuesToJson(
-    Iterable<MetricValue<num>> metrics,
+    Iterable<MetricValue>? metrics,
   ) =>
-      metrics.map((metric) {
+      (metrics ?? []).map((metric) {
+        final unitType = metric.unitType;
         final recommendation = metric.recommendation;
 
         return {
           'metricsId': metric.metricsId,
           'value': metric.value,
+          if (unitType != null) 'unitType': unitType,
           'level': metric.level.toString(),
           'comment': metric.comment,
           if (recommendation != null) 'recommendation': recommendation,

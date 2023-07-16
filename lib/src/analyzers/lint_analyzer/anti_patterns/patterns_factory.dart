@@ -5,20 +5,17 @@ import 'models/pattern.dart';
 
 typedef CreatePattern = Pattern Function(
   Map<String, Object> patternSettings,
-  Map<String, Object> metricstTresholds,
+  Map<String, Object> metricsThresholds,
 );
 
 final _implementedPatterns = <String, CreatePattern>{
-  LongMethod.patternId: (settings, tresholds) =>
-      LongMethod(patternSettings: settings, metricstTresholds: tresholds),
-  LongParameterList.patternId: (settings, tresholds) => LongParameterList(
+  LongMethod.patternId: (settings, thresholds) =>
+      LongMethod(patternSettings: settings, metricsThresholds: thresholds),
+  LongParameterList.patternId: (settings, thresholds) => LongParameterList(
         patternSettings: settings,
-        metricstTresholds: tresholds,
+        metricsThresholds: thresholds,
       ),
 };
-
-Iterable<Pattern> get allPatterns =>
-    _implementedPatterns.keys.map((id) => _implementedPatterns[id]!({}, {}));
 
 Iterable<Pattern> getPatternsById(LintConfig config) =>
     List.unmodifiable(_implementedPatterns.keys

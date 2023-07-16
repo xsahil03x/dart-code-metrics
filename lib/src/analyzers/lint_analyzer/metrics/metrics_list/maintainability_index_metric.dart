@@ -18,10 +18,8 @@ import 'source_lines_of_code/source_lines_of_code_metric.dart';
 const _documentation = MetricDocumentation(
   name: 'Maintainability Index',
   shortName: 'MI',
-  brief:
-      'Maintainability Index is a software metric which measures how maintainable (easy to support and change) the source code is.',
   measuredType: EntityType.methodEntity,
-  recomendedThreshold: 50,
+  recommendedThreshold: 50,
 );
 
 /// Maintainability Index (MI)
@@ -45,7 +43,7 @@ class MaintainabilityIndexMetric extends FunctionMetric<int> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   ) =>
       super.supports(
         node,
@@ -67,7 +65,7 @@ class MaintainabilityIndexMetric extends FunctionMetric<int> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   ) {
     final halVol = otherMetricsValues.firstWhere(
       (value) => value.metricsId == HalsteadVolumeMetric.metricId,

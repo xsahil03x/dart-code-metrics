@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:collection/src/iterable_extensions.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/metrics_list/number_of_parameters_metric.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/models/metric_value_level.dart';
@@ -24,7 +23,7 @@ Future<void> main() async {
     group('computes parameters received by the', () {
       test('simple function', () {
         final metricValue = metric.compute(
-          scopeVisitor.functions.toList()[0].declaration,
+          scopeVisitor.functions.toList().first.declaration,
           scopeVisitor.classes,
           scopeVisitor.functions,
           example,

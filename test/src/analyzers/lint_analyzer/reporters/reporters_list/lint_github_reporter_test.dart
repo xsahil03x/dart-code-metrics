@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'dart:io';
 
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/models/issue.dart';
@@ -10,6 +9,8 @@ import 'package:dart_code_metrics/src/analyzers/lint_analyzer/reporters/reporter
 import 'package:mocktail/mocktail.dart';
 import 'package:source_span/source_span.dart';
 import 'package:test/test.dart';
+
+import '../../../../../stubs_builders.dart';
 
 class IOSinkMock extends Mock implements IOSink {}
 
@@ -34,6 +35,7 @@ void main() {
         LintFileReport(
           path: fullPath,
           relativePath: 'example.dart',
+          file: buildReportStub(),
           classes: Map.unmodifiable(<String, Report>{}),
           functions: Map.unmodifiable(<String, Report>{}),
           issues: const [],
@@ -64,7 +66,7 @@ void main() {
       expect(
         verify(() => output.writeln(captureAny())).captured.cast<String>(),
         equals([
-          '::warning file=/home/developer/work/project/example.dart,line=2,col=3::DEPRECATED! This reporter is deprecated and will be removed in 5.0.0. You can migrate on our GitHub Action. first issue message',
+          '::warning file=/home/developer/work/project/example.dart,line=2,col=3::first issue message',
         ]),
       );
     });
@@ -74,6 +76,7 @@ void main() {
         LintFileReport(
           path: fullPath,
           relativePath: 'example.dart',
+          file: buildReportStub(),
           classes: Map.unmodifiable(<String, Report>{}),
           functions: Map.unmodifiable(<String, Report>{}),
           issues: [
@@ -127,8 +130,8 @@ void main() {
       expect(
         verify(() => output.writeln(captureAny())).captured.cast<String>(),
         equals([
-          '::warning file=/home/developer/work/project/example.dart,line=2,col=3::DEPRECATED! This reporter is deprecated and will be removed in 5.0.0. You can migrate on our GitHub Action. first issue message',
-          '::error file=/home/developer/work/project/example.dart,line=4,col=3::DEPRECATED! This reporter is deprecated and will be removed in 5.0.0. You can migrate on our GitHub Action. second issue message',
+          '::warning file=/home/developer/work/project/example.dart,line=2,col=3::first issue message',
+          '::error file=/home/developer/work/project/example.dart,line=4,col=3::second issue message',
         ]),
       );
     });

@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'dart:io';
 
 import 'package:dart_code_metrics/src/analyzers/unused_files_analyzer/reporters/reporters_list/console/unused_files_console_reporter.dart';
@@ -52,4 +51,6 @@ UnusedFilesConfig _createConfig({
     UnusedFilesConfig(
       excludePatterns: const [],
       analyzerExcludePatterns: analyzerExcludePatterns,
+      isMonorepo: false,
+      shouldPrintConfig: false,
     );

@@ -7,6 +7,7 @@ import 'metrics_list/maximum_nesting_level/maximum_nesting_level_metric.dart';
 import 'metrics_list/number_of_methods_metric.dart';
 import 'metrics_list/number_of_parameters_metric.dart';
 import 'metrics_list/source_lines_of_code/source_lines_of_code_metric.dart';
+import 'metrics_list/technical_debt/technical_debt_metric.dart';
 import 'metrics_list/weight_of_class_metric.dart';
 import 'models/metric.dart';
 
@@ -26,9 +27,11 @@ final _implementedMetrics = <String, Metric Function(Map<String, Object>)>{
       SourceLinesOfCodeMetric(config: config),
   WeightOfClassMetric.metricId: (config) => WeightOfClassMetric(config: config),
   // Complex metrics:
-  // Depend on CyclomaticComplexityMetric, HalsteadVolumeMetric and SourceLinesOfCodeMetric metrics
+  // Depends on CyclomaticComplexityMetric, HalsteadVolumeMetric and SourceLinesOfCodeMetric metrics
   MaintainabilityIndexMetric.metricId: (config) =>
       MaintainabilityIndexMetric(config: config),
+  // Depends on all metrics.
+  TechnicalDebtMetric.metricId: (config) => TechnicalDebtMetric(config: config),
 };
 
 Iterable<Metric> getMetrics({
@@ -36,15 +39,15 @@ Iterable<Metric> getMetrics({
   Iterable<String> patternsDependencies = const [],
   EntityType? measuredType,
 }) {
-  final _metrics = _implementedMetrics.keys.map(
+  final metrics = _implementedMetrics.keys.map(
     (id) => _implementedMetrics[id]!(
       !patternsDependencies.contains(id) ? config : {},
     ),
   );
 
   return measuredType != null
-      ? _metrics
+      ? metrics
           .where((metric) => metric.documentation.measuredType == measuredType)
           .toList()
-      : _metrics;
+      : metrics;
 }

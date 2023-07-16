@@ -39,7 +39,7 @@ abstract class Metric<T extends num> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   ) =>
       true;
 
@@ -49,7 +49,7 @@ abstract class Metric<T extends num> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   ) {
     final result = computeImplementation(
       node,
@@ -65,6 +65,7 @@ abstract class Metric<T extends num> {
       metricsId: id,
       documentation: documentation,
       value: result.value,
+      unitType: unitType(result.value),
       level: _levelComputer(result.value, threshold),
       comment: commentMessage(type, result.value, threshold),
       recommendation: recommendationMessage(type, result.value, threshold),
@@ -79,7 +80,7 @@ abstract class Metric<T extends num> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   );
 
   /// Returns the message for the user containing information about the computed value.
@@ -98,4 +99,8 @@ abstract class Metric<T extends num> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
   );
+
+  /// Returns the human readable unit type.
+  @protected
+  String? unitType(T value) => null;
 }

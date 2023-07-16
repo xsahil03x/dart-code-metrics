@@ -1,22 +1,28 @@
-part of 'prefer_extracting_callbacks.dart';
+part of 'prefer_extracting_callbacks_rule.dart';
 
 class _Visitor extends SimpleAstVisitor<void> {
   final _expressions = <Expression>[];
 
+  final LineInfo _lineInfo;
   final Iterable<String> _ignoredArguments;
+  final int? _allowedLineCount;
 
   Iterable<Expression> get expressions => _expressions;
 
-  _Visitor(this._ignoredArguments);
+  _Visitor(this._lineInfo, this._ignoredArguments, this._allowedLineCount);
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {
-    final classType = node.extendsClause?.superclass2.type;
+    final classType = node.extendsClause?.superclass.type;
     if (!isWidgetOrSubclass(classType) && !isWidgetStateOrSubclass(classType)) {
       return;
     }
 
-    final visitor = _InstanceCreationVisitor(_ignoredArguments);
+    final visitor = _InstanceCreationVisitor(
+      _lineInfo,
+      _ignoredArguments,
+      _allowedLineCount,
+    );
     node.visitChildren(visitor);
 
     _expressions.addAll(visitor.expressions);
@@ -26,14 +32,22 @@ class _Visitor extends SimpleAstVisitor<void> {
 class _InstanceCreationVisitor extends RecursiveAstVisitor<void> {
   final _expressions = <Expression>[];
 
+  final LineInfo _lineInfo;
   final Iterable<String> _ignoredArguments;
+  final int? _allowedLineCount;
 
   Iterable<Expression> get expressions => _expressions;
 
-  _InstanceCreationVisitor(this._ignoredArguments);
+  _InstanceCreationVisitor(
+    this._lineInfo,
+    this._ignoredArguments,
+    this._allowedLineCount,
+  );
 
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
+    super.visitInstanceCreationExpression(node);
+
     for (final argument in node.argumentList.arguments) {
       final expression =
           argument is NamedExpression ? argument.expression : argument;
@@ -41,7 +55,8 @@ class _InstanceCreationVisitor extends RecursiveAstVisitor<void> {
       if (_isNotIgnored(argument) &&
           expression is FunctionExpression &&
           _hasNotEmptyBlockBody(expression) &&
-          !_isFlutterBuilder(expression)) {
+          !_isFlutterBuilder(expression) &&
+          _isLongEnough(expression)) {
         _expressions.add(argument);
       }
     }
@@ -71,4 +86,16 @@ class _InstanceCreationVisitor extends RecursiveAstVisitor<void> {
   bool _isNotIgnored(Expression argument) =>
       argument is! NamedExpression ||
       !_ignoredArguments.contains(argument.name.label.name);
+
+  bool _isLongEnough(Expression expression) {
+    final allowedLineCount = _allowedLineCount;
+    if (allowedLineCount == null) {
+      return true;
+    }
+
+    final visitor = SourceCodeVisitor(_lineInfo);
+    expression.visitChildren(visitor);
+
+    return visitor.linesWithCode.length > allowedLineCount;
+  }
 }

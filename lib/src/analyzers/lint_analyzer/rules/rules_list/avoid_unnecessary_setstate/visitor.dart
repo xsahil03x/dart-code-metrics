@@ -1,7 +1,12 @@
-part of 'avoid_unnecessary_setstate.dart';
+part of 'avoid_unnecessary_setstate_rule.dart';
 
 class _Visitor extends RecursiveAstVisitor<void> {
-  static const _checkedMethods = ['initState', 'didUpdateWidget', 'build'];
+  static const _checkedMethods = [
+    'initState',
+    'didUpdateWidget',
+    'didChangeDependencies',
+    'build',
+  ];
 
   final _setStateInvocations = <MethodInvocation>[];
   final _classMethodsInvocations = <MethodInvocation>[];
@@ -14,20 +19,20 @@ class _Visitor extends RecursiveAstVisitor<void> {
   void visitClassDeclaration(ClassDeclaration node) {
     super.visitClassDeclaration(node);
 
-    final type = node.extendsClause?.superclass2.type;
+    final type = node.extendsClause?.superclass.type;
     if (type == null || !isWidgetStateOrSubclass(type)) {
       return;
     }
 
     final declarations = node.members.whereType<MethodDeclaration>().toList();
     final classMethodsNames =
-        declarations.map((declaration) => declaration.name.name).toSet();
+        declarations.map((declaration) => declaration.name.lexeme).toSet();
     final bodies = declarations.map((declaration) => declaration.body).toList();
     final methods = declarations
-        .where((member) => _checkedMethods.contains(member.name.name))
+        .where((member) => _checkedMethods.contains(member.name.lexeme))
         .toList();
     final restMethods = declarations
-        .where((member) => !_checkedMethods.contains(member.name.name))
+        .where((member) => !_checkedMethods.contains(member.name.lexeme))
         .toList();
 
     final visitedRestMethods = <String, bool>{};
@@ -44,7 +49,7 @@ class _Visitor extends RecursiveAstVisitor<void> {
                   classMethodsNames,
                   bodies,
                   restMethods.firstWhere((method) =>
-                      method.name.name == invocation.methodName.name),
+                      method.name.lexeme == invocation.methodName.name),
                 ))
             .toList(),
       );
@@ -62,7 +67,7 @@ class _Visitor extends RecursiveAstVisitor<void> {
       return false;
     }
 
-    final name = declaration.name.name;
+    final name = declaration.name.lexeme;
     if (visitedRestMethods.containsKey(name) && visitedRestMethods[name]!) {
       return true;
     }
@@ -96,11 +101,12 @@ class _MethodVisitor extends RecursiveAstVisitor<void> {
     super.visitMethodInvocation(node);
 
     final name = node.methodName.name;
+    final notInBody = _isNotInFunctionBody(node);
 
-    if (name == 'setState' && _isNotInFunctionBody(node)) {
+    if (name == 'setState' && notInBody) {
       _setStateInvocations.add(node);
     } else if (classMethodsNames.contains(name) &&
-        _isNotInFunctionBody(node) &&
+        notInBody &&
         node.realTarget == null) {
       _classMethodsInvocations.add(node);
     }

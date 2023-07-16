@@ -1,10 +1,8 @@
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:meta/meta.dart';
 
 import 'class_type.dart';
 
 /// Represents a declaration of a class / mixin / extension.
-@immutable
 class ScopedClassDeclaration {
   /// The type of the declared class entity.
   final ClassType type;
@@ -18,9 +16,9 @@ class ScopedClassDeclaration {
     String? name;
 
     if (node is ExtensionDeclaration) {
-      name = node.name?.name;
+      name = node.name?.lexeme;
     } else if (node is NamedCompilationUnitMember) {
-      name = node.name.name;
+      name = node.name.lexeme;
     }
 
     return name ?? '';

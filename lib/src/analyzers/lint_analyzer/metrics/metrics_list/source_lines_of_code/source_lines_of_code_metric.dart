@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:source_span/source_span.dart';
 
+import '../../../base_visitors/source_code_visitor.dart';
 import '../../../models/context_message.dart';
 import '../../../models/entity_type.dart';
 import '../../../models/internal_resolved_unit_result.dart';
@@ -11,15 +12,12 @@ import '../../models/function_metric.dart';
 import '../../models/metric_computation_result.dart';
 import '../../models/metric_documentation.dart';
 import '../../models/metric_value.dart';
-import 'source_code_visitor.dart';
 
 const _documentation = MetricDocumentation(
   name: 'Source lines of Code',
   shortName: 'SLOC',
-  brief:
-      'The approximate number of source code lines in a method, blank lines and comments are not counted.',
   measuredType: EntityType.methodEntity,
-  recomendedThreshold: 50,
+  recommendedThreshold: 50,
 );
 
 /// Source lines of Code (SLOC)
@@ -46,7 +44,7 @@ class SourceLinesOfCodeMetric extends FunctionMetric<int> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   ) {
     final visitor = SourceCodeVisitor(source.lineInfo);
     node.visitChildren(visitor);
@@ -72,6 +70,9 @@ class SourceLinesOfCodeMetric extends FunctionMetric<int> {
       (threshold != null && value > threshold)
           ? 'Consider breaking this $nodeType up into smaller parts.'
           : null;
+
+  @override
+  String? unitType(int value) => value == 1 ? 'line' : 'lines';
 
   Iterable<ContextMessage> _context(
     Iterable<int> linesWithCode,

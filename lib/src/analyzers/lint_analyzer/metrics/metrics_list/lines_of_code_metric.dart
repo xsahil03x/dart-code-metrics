@@ -13,10 +13,8 @@ import '../models/metric_value.dart';
 const _documentation = MetricDocumentation(
   name: 'Lines of Code',
   shortName: 'LOC',
-  brief:
-      'The number of physical lines of code of a method, including blank lines and comments',
   measuredType: EntityType.methodEntity,
-  recomendedThreshold: 100,
+  recommendedThreshold: 100,
 );
 
 /// Lines of Code (LOC)
@@ -41,7 +39,7 @@ class LinesOfCodeMetric extends FunctionMetric<int> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   ) =>
       MetricComputationResult(
         value: 1 +
@@ -64,4 +62,7 @@ class LinesOfCodeMetric extends FunctionMetric<int> {
       (threshold != null && value > threshold)
           ? 'Consider breaking this $nodeType up into smaller parts.'
           : null;
+
+  @override
+  String? unitType(int value) => value == 1 ? 'line' : 'lines';
 }

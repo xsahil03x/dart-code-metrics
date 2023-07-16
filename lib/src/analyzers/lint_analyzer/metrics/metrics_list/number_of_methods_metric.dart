@@ -16,9 +16,8 @@ import '../scope_utils.dart';
 const _documentation = MetricDocumentation(
   name: 'Number of Methods',
   shortName: 'NOM',
-  brief: 'The number of methods of a class.',
   measuredType: EntityType.classEntity,
-  recomendedThreshold: 10,
+  recommendedThreshold: 10,
 );
 
 /// Number of Methods (NOM)
@@ -42,7 +41,7 @@ class NumberOfMethodsMetric extends ClassMetric<int> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   ) {
     final methods = classMethods(node, functionDeclarations);
 
@@ -78,4 +77,7 @@ class NumberOfMethodsMetric extends ClassMetric<int> {
                 location: nodeLocation(node: func.declaration, source: source),
               ))
           .toList(growable: false);
+
+  @override
+  String? unitType(int value) => value == 1 ? 'method' : 'methods';
 }

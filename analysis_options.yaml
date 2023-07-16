@@ -4,12 +4,17 @@ analyzer:
   exclude:
     - test/resources/*
     - test/resources/unused_files_analyzer/**
+    - test/resources/unused_l10n_analyzer/**
+    - test/resources/unused_code_analyzer/generated/**
+    - test/resources/unnecessary_nullable_analyzer/generated/**
+    - test/resources/file_path_folder/**
     - test/**/examples/**
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
   plugins:
     - dart_code_metrics
-  strong-mode:
-    implicit-casts: false
-    implicit-dynamic: false
 
 dart_code_metrics:
   anti-patterns:
@@ -21,6 +26,15 @@ dart_code_metrics:
     maximum-nesting: 5
     number-of-parameters: 5
     source-lines-of-code: 50
+    technical-debt:
+      threshold: 16
+      todo-cost: 4
+      ignore-cost: 8
+      ignore-for-file-cost: 16
+      as-dynamic-cost: 16
+      deprecated-annotations-cost: 2
+      file-nullsafety-migration-cost: 2
+      unit-type: "hours"
   metrics-exclude:
     - test/src/analyzer_plugin/**
     - test/src/analyzers/**
@@ -32,6 +46,17 @@ dart_code_metrics:
     - test/resources/*
     - test/*
   rules:
+    - avoid-collection-methods-with-unrelated-types
+    - avoid-dynamic:
+        exclude:
+          - test/**
+    - avoid-global-state
+    - avoid-late-keyword:
+        exclude:
+          - test/**
+    - avoid-missing-enum-constant-in-map
+    - avoid-unnecessary-type-assertions
+    - avoid-unnecessary-type-casts
     - avoid-unused-parameters
     - binary-expression-operand-order
     - double-literal-format
@@ -40,7 +65,22 @@ dart_code_metrics:
     - no-empty-block
     - no-equal-then-else
     - no-object-declaration
+    - prefer-async-await
     - prefer-conditional-expressions
+    - prefer-correct-identifier-length:
+        exceptions:
+          - id
+          - ok
+    - prefer-correct-type-name:
+        max-length: 44
+    - prefer-first
+    - prefer-last
+    - prefer-match-file-name:
+        exclude:
+          - test/**
+    - prefer-moving-to-variable:
+        exclude:
+          - test/**
     - prefer-trailing-comma
 
 linter:
@@ -60,6 +100,7 @@ linter:
     - avoid_equals_and_hash_code_on_mutable_classes
     - avoid_escaping_inner_quotes
     - avoid_field_initializers_in_const_classes
+    - avoid_final_parameters
     - avoid_implementing_value_types
     - avoid_js_rounded_ints
     - avoid_multiple_declarations_per_line
@@ -83,17 +124,16 @@ linter:
     #    - cast_nullable_to_non_nullable
     - close_sinks
     - comment_references
-    - depend_on_referenced_packages
+    - conditional_uri_does_not_exist
     - deprecated_consistency
     - diagnostic_describe_all_properties
     - directives_ordering
     - do_not_use_environment
     - eol_at_end_of_file
     - flutter_style_todos
-    - invariant_booleans
+    # - invariant_booleans
     - join_return_with_assignment
     - leading_newlines_in_multiline_strings
-    - library_private_types_in_public_api
     #    - lines_longer_than_80_chars
     - literal_only_boolean_expressions
     - missing_whitespace_between_adjacent_strings
@@ -102,7 +142,6 @@ linter:
     - no_logic_in_create_state
     - no_runtimeType_toString
     - noop_primitive_operations
-    - null_check_on_nullable_type_parameter
     - omit_local_variable_types
     #    - one_member_abstracts
     - only_throw_errors
@@ -123,14 +162,15 @@ linter:
     - prefer_foreach
     - prefer_if_elements_to_conditional_expressions
     - prefer_int_literals
-    - prefer_interpolation_to_compose_strings
     - prefer_mixin
     - prefer_null_aware_method_calls
     - prefer_relative_imports
     - prefer_single_quotes
     #    - public_member_api_docs
     #    - require_trailing_commas
-    - sized_box_for_whitespace
+    - secure_pubspec_urls
+    #    - sized_box_for_whitespace
+    #    - sized_box_shrink_expand
     #    - sort_child_properties_last
     #    - sort_constructors_first
     - sort_pub_dependencies
@@ -143,14 +183,13 @@ linter:
     - unnecessary_await_in_return
     #    - unnecessary_final
     - unnecessary_lambdas
-    - unnecessary_null_aware_assignments
     - unnecessary_null_checks
-    - unnecessary_nullable_for_final_variable_declarations
     - unnecessary_parenthesis
     - unnecessary_raw_strings
     - unnecessary_statements
     - unsafe_html
-    - use_build_context_synchronously
+    #    - use_build_context_synchronously
+    #    - use_decorated_box
     #    - use_full_hex_values_for_flutter_colors
     - use_if_null_to_convert_nulls_to_bools
     - use_is_even_rather_than_modulo
@@ -160,5 +199,6 @@ linter:
     - use_raw_strings
     - use_setters_to_change_properties
     - use_string_buffers
+    - use_super_parameters
     - use_test_throws_matchers
     - use_to_and_as_if_applicable

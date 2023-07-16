@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'dart:io';
 
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/lint_analyzer.dart';
@@ -8,6 +7,8 @@ import 'package:dart_code_metrics/src/analyzers/lint_analyzer/models/lint_file_r
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/models/report.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+
+import '../../../stubs_builders.dart';
 
 void main() {
   group(
@@ -73,7 +74,7 @@ void main() {
       });
 
       test('should exceed lines-of-code metric', () async {
-        final config = _createConfig(metrics: {'lines-of-code': 4});
+        final config = _createConfig(metrics: {'lines-of-code': 8});
 
         final result = await analyzer.runCliAnalysis(
           folders,
@@ -118,8 +119,8 @@ void main() {
         expect(report, isEmpty);
       });
 
-      test('should report avoid-late-keyword rule', () async {
-        final config = _createConfig(rules: {'avoid-late-keyword': {}});
+      test('should report no-magic-number rule', () async {
+        final config = _createConfig(rules: {'no-magic-number': {}});
 
         final result = await analyzer.runCliAnalysis(
           folders,
@@ -129,9 +130,11 @@ void main() {
 
         final issues =
             reportForFile(result, 'lint_analyzer_exclude_example.dart').issues;
-        final ids = issues.map((issue) => issue.ruleId);
 
-        expect(ids, List.filled(1, 'avoid-late-keyword'));
+        expect(
+          issues.map((issue) => issue.ruleId),
+          equals(['no-magic-number', 'no-magic-number']),
+        );
       });
 
       test('should not report rules', () async {
@@ -163,6 +166,11 @@ void main() {
           result.firstWhere((r) => r.title == 'Total scanned files').value,
           isZero,
         );
+
+        expect(
+          result.firstWhere((r) => r.title == 'Total tech debt').value,
+          equals('not found'),
+        );
       });
 
       test('collect summary for passed report', () {
@@ -170,6 +178,13 @@ void main() {
           LintFileReport(
             path: '/home/dev/project/bin/example.dart',
             relativePath: 'bin/example.dart',
+            file: buildReportStub(metrics: [
+              buildMetricValueStub(
+                id: 'technical-debt',
+                value: 10,
+                unitType: 'USD',
+              ),
+            ]),
             classes: Map.unmodifiable(<String, Report>{}),
             functions: Map.unmodifiable(<String, Report>{}),
             issues: const [],
@@ -178,6 +193,7 @@ void main() {
           LintFileReport(
             path: '/home/dev/project/lib/example.dart',
             relativePath: 'lib/example.dart',
+            file: buildReportStub(),
             classes: Map.unmodifiable(<String, Report>{}),
             functions: Map.unmodifiable(<String, Report>{}),
             issues: const [],
@@ -193,6 +209,10 @@ void main() {
           result.firstWhere((r) => r.title == 'Total scanned files').value,
           equals(2),
         );
+        expect(
+          result.firstWhere((r) => r.title == 'Total tech debt').value,
+          equals('10 USD'),
+        );
       });
     },
     testOn: 'posix',
@@ -206,6 +226,8 @@ LintConfig _createConfig({
   Iterable<String> excludeForMetricsPatterns = const [],
   Map<String, Map<String, Object>> rules = const {},
   Iterable<String> excludeForRulesPatterns = const [],
+  bool shouldPrintConfig = false,
+  String analysisOptionsPath = '',
 }) =>
     LintConfig(
       antiPatterns: antiPatterns,
@@ -214,6 +236,8 @@ LintConfig _createConfig({
       excludeForMetricsPatterns: excludeForMetricsPatterns,
       rules: rules,
       excludeForRulesPatterns: excludeForRulesPatterns,
+      shouldPrintConfig: shouldPrintConfig,
+      analysisOptionsPath: analysisOptionsPath,
     );
 
 LintFileReport reportForFile(

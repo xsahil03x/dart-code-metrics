@@ -1,21 +1,19 @@
-part of 'avoid_returning_widgets.dart';
+part of 'avoid_returning_widgets_rule.dart';
 
 class _ConfigParser {
   static const _ignoredNamesConfig = 'ignored-names';
   static const _ignoredAnnotationsConfig = 'ignored-annotations';
-
-  static const _defaultIgnoredAnnotations = [
-    'FunctionalWidget',
-    'swidget',
-    'hwidget',
-  ];
+  static const _allowNullable = 'allow-nullable';
 
   static Iterable<String> getIgnoredNames(Map<String, Object> config) =>
       _getIterable(config, _ignoredNamesConfig) ?? [];
 
   static Iterable<String> getIgnoredAnnotations(Map<String, Object> config) =>
       _getIterable(config, _ignoredAnnotationsConfig) ??
-      _defaultIgnoredAnnotations;
+      functionalWidgetAnnotations;
+
+  static bool getAllowNullable(Map<String, Object> config) =>
+      config[_allowNullable] as bool? ?? false;
 
   static Iterable<String>? _getIterable(
     Map<String, Object> config,

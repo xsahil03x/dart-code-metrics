@@ -1,10 +1,8 @@
-import 'package:meta/meta.dart';
 import 'package:source_span/source_span.dart';
 
 /// Represents an issue detected by the unused localization check.
-@immutable
 class UnusedL10nIssue {
-  /// The name of a class member, which is unused
+  /// The name of a class member, which is unused.
   final String memberName;
 
   /// The source location associated with this issue.

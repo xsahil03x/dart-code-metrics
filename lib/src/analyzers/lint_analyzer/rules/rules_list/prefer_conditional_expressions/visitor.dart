@@ -1,13 +1,27 @@
-part of 'prefer_conditional_expressions.dart';
+part of 'prefer_conditional_expressions_rule.dart';
 
 class _Visitor extends RecursiveAstVisitor<void> {
   final _statementsInfo = <_StatementInfo>[];
 
+  final bool _ignoreNested;
+
   Iterable<_StatementInfo> get statementsInfo => _statementsInfo;
+
+  // ignore: avoid_positional_boolean_parameters
+  _Visitor(this._ignoreNested);
 
   @override
   void visitIfStatement(IfStatement node) {
     super.visitIfStatement(node);
+
+    if (_ignoreNested) {
+      final visitor = _ConditionalsVisitor();
+      node.visitChildren(visitor);
+
+      if (visitor.hasInnerConditionals) {
+        return;
+      }
+    }
 
     if (node.parent is! IfStatement &&
         node.elseStatement != null &&
@@ -80,7 +94,17 @@ class _Visitor extends RecursiveAstVisitor<void> {
   }
 }
 
-@immutable
+class _ConditionalsVisitor extends RecursiveAstVisitor<void> {
+  bool hasInnerConditionals = false;
+
+  @override
+  void visitConditionalExpression(ConditionalExpression node) {
+    hasInnerConditionals = true;
+
+    super.visitConditionalExpression(node);
+  }
+}
+
 class _StatementInfo {
   final IfStatement statement;
   final AstNode unwrappedThenStatement;

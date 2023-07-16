@@ -1,4 +1,4 @@
-part of 'prefer_trailing_comma.dart';
+part of 'prefer_trailing_comma_rule.dart';
 
 class _Visitor extends RecursiveAstVisitor<void> {
   final LineInfo _lineInfo;
@@ -26,13 +26,6 @@ class _Visitor extends RecursiveAstVisitor<void> {
       node.leftParenthesis,
       node.rightParenthesis,
     );
-  }
-
-  @override
-  void visitEnumDeclaration(EnumDeclaration node) {
-    super.visitEnumDeclaration(node);
-
-    _visitNodeList(node.constants, node.leftBracket, node.rightBracket);
   }
 
   @override

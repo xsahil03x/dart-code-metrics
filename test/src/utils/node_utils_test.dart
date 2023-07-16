@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/token.dart';
 import 'package:analyzer/source/line_info.dart';
@@ -11,8 +10,6 @@ import 'package:test/test.dart';
 class AnnotatedNodeMock extends Mock implements AnnotatedNode {}
 
 class CompilationUnitMock extends Mock implements CompilationUnit {}
-
-class CharacterLocationMock extends Mock implements CharacterLocation {}
 
 class LineInfoMock extends Mock implements LineInfo {}
 

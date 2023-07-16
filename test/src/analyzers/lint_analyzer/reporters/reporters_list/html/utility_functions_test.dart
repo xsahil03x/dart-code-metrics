@@ -1,6 +1,5 @@
-@TestOn('vm')
-import 'package:dart_code_metrics/src/analyzers/lint_analyzer/reporters/reporters_list/html/lint_html_reporter.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/reporters/reporters_list/html/models/file_metrics_report.dart';
+import 'package:dart_code_metrics/src/analyzers/lint_analyzer/reporters/reporters_list/html/models/report_table_record.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/reporters/reporters_list/html/utility_functions.dart';
 import 'package:test/test.dart';
 
@@ -56,11 +55,14 @@ void main() {
               sourceLinesOfCodeViolations: 0,
               averageMaximumNestingLevel: 6,
               maximumNestingLevelViolations: 6,
+              technicalDebt: 0,
+              technicalDebtViolations: 0,
+              technicalDebtUnitType: null,
             ),
           ),
         ).outerHtml,
         equals(
-          '<tr><td><a href="fileLink">fileName</a></td><td class="with-violations">4 / 4</td><td class="">5</td><td class="with-violations">2 / 2</td><td class="">1</td><td class="with-violations">6 / 6</td></tr>',
+          '<tr><td><a href="fileLink">fileName</a></td><td class="with-violations">4 / 4</td><td class="">5</td><td class="with-violations">2 / 2</td><td class="">1</td><td class="with-violations">6 / 6</td><td class="">0.0</td></tr>',
         ),
       );
     });

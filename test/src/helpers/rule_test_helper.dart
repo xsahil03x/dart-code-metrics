@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/models/internal_resolved_unit_result.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/models/issue.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/models/severity.dart';
@@ -15,6 +17,20 @@ class RuleTestHelper {
     return FileResolver.resolve(fullPath);
   }
 
+  static Future<InternalResolvedUnitResult> createAndResolveFromFile({
+    required String content,
+    required String filePath,
+  }) async {
+    final fullPath =
+        'test/src/analyzers/lint_analyzer/rules/rules_list/$filePath';
+
+    final file = File(fullPath)..writeAsStringSync(content);
+    final result = await FileResolver.resolve(fullPath);
+    file.deleteSync();
+
+    return result;
+  }
+
   static void verifyInitialization({
     required Iterable<Issue> issues,
     required String ruleId,
@@ -26,23 +42,13 @@ class RuleTestHelper {
 
   static void verifyIssues({
     required Iterable<Issue> issues,
-    Iterable<int>? startOffsets,
     Iterable<int>? startLines,
     Iterable<int>? startColumns,
-    Iterable<int>? endOffsets,
     Iterable<String>? locationTexts,
     Iterable<String>? messages,
-    Iterable<String>? replacements,
-    Iterable<String>? replacementComments,
+    Iterable<String?>? replacements,
+    Iterable<String?>? replacementComments,
   }) {
-    if (startOffsets != null) {
-      expect(
-        issues.map((issue) => issue.location.start.offset),
-        equals(startOffsets),
-        reason: 'incorrect start offset',
-      );
-    }
-
     if (startLines != null) {
       expect(
         issues.map((issue) => issue.location.start.line),
@@ -56,14 +62,6 @@ class RuleTestHelper {
         issues.map((issue) => issue.location.start.column),
         equals(startColumns),
         reason: 'incorrect start column',
-      );
-    }
-
-    if (endOffsets != null) {
-      expect(
-        issues.map((issue) => issue.location.end.offset),
-        equals(endOffsets),
-        reason: 'incorrect end offset',
       );
     }
 
@@ -85,7 +83,7 @@ class RuleTestHelper {
 
     if (replacements != null) {
       expect(
-        issues.map((issue) => issue.suggestion!.replacement),
+        issues.map((issue) => issue.suggestion?.replacement),
         equals(replacements),
         reason: 'incorrect replacement',
       );
@@ -93,7 +91,7 @@ class RuleTestHelper {
 
     if (replacementComments != null) {
       expect(
-        issues.map((issue) => issue.suggestion!.comment),
+        issues.map((issue) => issue.suggestion?.comment),
         equals(replacementComments),
         reason: 'incorrect replacement comment',
       );

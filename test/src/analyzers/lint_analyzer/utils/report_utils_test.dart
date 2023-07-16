@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/metrics_list/cyclomatic_complexity/cyclomatic_complexity_metric.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/metrics_list/source_lines_of_code/source_lines_of_code_metric.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/models/metric_value_level.dart';
@@ -25,6 +24,7 @@ void main() {
       LintFileReport(
         path: fullPathStub,
         relativePath: relativePathStub,
+        file: buildReportStub(),
         classes: const {},
         functions: {'a': buildFunctionRecordStub(metrics: [])},
         issues: const [],
@@ -36,6 +36,7 @@ void main() {
       LintFileReport(
         path: fullPathStub,
         relativePath: relativePathStub,
+        file: buildReportStub(),
         classes: Map.unmodifiable(<String, Report>{}),
         functions: Map.unmodifiable(<String, Report>{
           'a': buildFunctionRecordStub(
@@ -65,6 +66,7 @@ void main() {
       LintFileReport(
         path: fullPathStub2,
         relativePath: relativePathStub2,
+        file: buildReportStub(),
         classes: Map.unmodifiable(<String, Report>{}),
         functions: Map.unmodifiable(<String, Report>{
           'a': buildFunctionRecordStub(
@@ -88,6 +90,7 @@ void main() {
       LintFileReport(
         path: fullPathStub3,
         relativePath: relativePathStub3,
+        file: buildReportStub(),
         classes: Map.unmodifiable(<String, Report>{}),
         functions: Map.unmodifiable(<String, Report>{
           'a': buildFunctionRecordStub(
@@ -119,19 +122,20 @@ void main() {
 
     test('maxMetricViolationLevel returns violation level', () {
       expect(maxMetricViolationLevel(fileRecords), MetricValueLevel.warning);
+      expect(maxMetricViolationLevel([]), MetricValueLevel.none);
     });
 
     test(
-      'hasIssueWithSevetiry returns true if found issue with required severity',
+      'hasIssueWithSeverity returns true if found issue with required severity',
       () {
-        expect(hasIssueWithSevetiry(fileRecords, Severity.error), isTrue);
-        expect(hasIssueWithSevetiry(fileRecords, Severity.warning), isFalse);
+        expect(hasIssueWithSeverity(fileRecords, Severity.error), isTrue);
+        expect(hasIssueWithSeverity(fileRecords, Severity.warning), isFalse);
         expect(
-          hasIssueWithSevetiry(fileRecords, Severity.performance),
+          hasIssueWithSeverity(fileRecords, Severity.performance),
           isFalse,
         );
-        expect(hasIssueWithSevetiry(fileRecords, Severity.style), isTrue);
-        expect(hasIssueWithSevetiry(fileRecords, Severity.none), isFalse);
+        expect(hasIssueWithSeverity(fileRecords, Severity.style), isTrue);
+        expect(hasIssueWithSeverity(fileRecords, Severity.none), isFalse);
       },
     );
 

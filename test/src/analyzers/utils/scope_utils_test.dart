@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/scope_utils.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/models/class_type.dart';
@@ -51,7 +50,6 @@ void main() {
       ),
     ];
 
-    expect(classMethods(null, functions), hasLength(1));
     expect(classMethods(firstClass.declaration, functions), hasLength(2));
     expect(classMethods(secondClass.declaration, functions), hasLength(2));
     expect(classMethods(thirdClass.declaration, functions), isEmpty);

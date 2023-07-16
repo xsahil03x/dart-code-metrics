@@ -63,6 +63,9 @@ Widget _getStatelessFunctionalWidget() => Container();
 @hwidget
 Widget _getHookFunctionalWidget() => Container();
 
+@hcwidget
+Widget _getHookConsumerFunctionalWidget() => Container();
+
 // LINT
 @ignoredAnnotation
 Widget _getWidgetWithIgnoredAnnotation() => Container();
@@ -73,6 +76,7 @@ class FunctionalWidget {
 
 const swidget = FunctionalWidget();
 const hwidget = FunctionalWidget();
+const hcwidget = FunctionalWidget();
 
 class IgnoredAnnotation {
   const IgnoredAnnotation();
@@ -93,3 +97,29 @@ class Builder extends Widget {
 }
 
 class StatelessWidget extends Widget {}
+
+class MyOtherWidget extends StatelessWidget {
+  Widget _buildMyWidget(BuildContext context) {
+    return Container();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Builder(builder: (context) {
+      return _buildMyWidget(context);
+    });
+  }
+}
+
+class MyAnotherWidget extends StatelessWidget {
+  Widget _buildMyWidget(BuildContext context) {
+    return Container();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Builder(
+      builder: (context) => _buildMyWidget(context),
+    );
+  }
+}

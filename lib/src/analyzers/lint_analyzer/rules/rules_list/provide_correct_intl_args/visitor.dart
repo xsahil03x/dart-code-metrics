@@ -1,4 +1,4 @@
-part of 'provide_correct_intl_args.dart';
+part of 'provide_correct_intl_args_rule.dart';
 
 class _Visitor extends IntlBaseVisitor {
   @override
@@ -23,17 +23,17 @@ class _Visitor extends IntlBaseVisitor {
     MethodInvocation methodInvocation,
     FormalParameterList? parameterList,
   ) {
-    final argsArgument = methodInvocation.argumentList.arguments
+    final arguments = methodInvocation.argumentList.arguments;
+    final argsArgument = arguments
         .whereType<NamedExpression>()
         .where((argument) => argument.name.label.name == 'args')
         .firstOrNull
         ?.expression
         .as<ListLiteral>();
 
-    final parameterSimpleIdentifiers = parameterList?.parameters
-            .map((parameter) => parameter.identifier)
-            .toList() ??
-        <SimpleIdentifier>[];
+    final parameterSimpleIdentifiers =
+        parameterList?.parameters.map((parameter) => parameter.name).toList() ??
+            <Token>[];
 
     if (argsArgument != null && parameterSimpleIdentifiers.isEmpty) {
       addIssue(_ArgsMustBeOmittedIssue(argsArgument));
@@ -47,21 +47,23 @@ class _Visitor extends IntlBaseVisitor {
 
     _checkAllArgsElementsMustBeSimpleIdentifier(argsArgument);
 
-    final argsSimpleIdentifiers =
-        argsArgument?.elements.whereType<SimpleIdentifier>().toList() ??
-            <SimpleIdentifier>[];
+    final argsSimpleIdentifiers = argsArgument?.elements
+            .whereType<SimpleIdentifier>()
+            .toList()
+            .map((identifier) => identifier.token)
+            .toList() ??
+        <Token>[];
 
     _checkAllParametersMustBeContainsInArgs(
       parameterSimpleIdentifiers,
       argsSimpleIdentifiers,
     );
     _checkAllArgsMustBeContainsInParameters(
-      argsSimpleIdentifiers,
       parameterSimpleIdentifiers,
+      argsSimpleIdentifiers,
     );
 
-    final messageArgument =
-        methodInvocation.argumentList.arguments.first.as<StringInterpolation>();
+    final messageArgument = arguments.first.as<StringInterpolation>();
 
     if (messageArgument != null) {
       final interpolationExpressions = messageArgument.elements
@@ -71,8 +73,11 @@ class _Visitor extends IntlBaseVisitor {
 
       _checkItemsOnSimple(interpolationExpressions);
 
-      final interpolationExpressionSimpleIdentifiers =
-          interpolationExpressions.whereType<SimpleIdentifier>().toList();
+      final interpolationExpressionSimpleIdentifiers = interpolationExpressions
+          .whereType<SimpleIdentifier>()
+          .toList()
+          .map((identifier) => identifier.token)
+          .toList();
 
       if (argsArgument != null &&
           parameterSimpleIdentifiers.isEmpty &&
@@ -82,8 +87,8 @@ class _Visitor extends IntlBaseVisitor {
 
       if (interpolationExpressionSimpleIdentifiers.isNotEmpty) {
         _checkAllInterpolationMustBeContainsInParameters(
-          interpolationExpressionSimpleIdentifiers,
           parameterSimpleIdentifiers,
+          interpolationExpressionSimpleIdentifiers,
         );
         _checkAllInterpolationMustBeContainsInArgs(
           interpolationExpressionSimpleIdentifiers,
@@ -111,132 +116,121 @@ class _Visitor extends IntlBaseVisitor {
   void _checkItemsOnSimple<T extends AstNode>(Iterable<T> items) {
     addIssues(items
         .where((item) => item is! SimpleIdentifier)
-        .map((item) => _MustBeSimpleIdentifierIssue(item)));
+        .map(_MustBeSimpleIdentifierIssue.new));
   }
 
   void _checkAllParametersMustBeContainsInArgs(
-    Iterable<SimpleIdentifier?> parameters,
-    Iterable<SimpleIdentifier> argsArgument,
+    Iterable<Token?> parameters,
+    Iterable<Token> argsArgument,
   ) {
     _addIssuesIfNotContains(
       parameters,
       argsArgument,
-      (arg) => _ParameterMustBeInArgsIssue(arg),
+      _ParameterMustBeInArgsIssue.new,
     );
   }
 
   void _checkAllArgsMustBeContainsInParameters(
-    Iterable<SimpleIdentifier> argsArgument,
-    Iterable<SimpleIdentifier?> parameters,
+    Iterable<Token?> parameters,
+    Iterable<Token> argsArgument,
   ) {
     _addIssuesIfNotContains(
       argsArgument,
       parameters,
-      (arg) => _ArgsMustBeInParameterIssue(arg),
+      _ArgsMustBeInParameterIssue.new,
     );
   }
 
   void _checkAllInterpolationMustBeContainsInParameters(
-    Iterable<SimpleIdentifier> simpleIdentifierExpressions,
-    Iterable<SimpleIdentifier?> parameters,
+    Iterable<Token?> parameters,
+    Iterable<Token> simpleIdentifierExpressions,
   ) {
     _addIssuesIfNotContains(
       simpleIdentifierExpressions,
       parameters,
-      (arg) => _InterpolationMustBeInParameterIssue(arg),
+      _InterpolationMustBeInParameterIssue.new,
     );
   }
 
   void _checkAllInterpolationMustBeContainsInArgs(
-    Iterable<SimpleIdentifier> simpleIdentifierExpressions,
-    Iterable<SimpleIdentifier> args,
+    Iterable<Token> simpleIdentifierExpressions,
+    Iterable<Token> args,
   ) {
     _addIssuesIfNotContains(
       simpleIdentifierExpressions,
       args,
-      (arg) => _InterpolationMustBeInArgsIssue(arg),
+      _InterpolationMustBeInArgsIssue.new,
     );
   }
 
   void _addIssuesIfNotContains(
-    Iterable<SimpleIdentifier?> checkedItems,
-    Iterable<SimpleIdentifier?> existsItems,
-    IntlBaseIssue Function(SimpleIdentifier args) issueFactory,
+    Iterable<Token?> checkedItems,
+    Iterable<Token?> existsItems,
+    IntlBaseIssue Function(Token args) issueFactory,
   ) {
-    final argsNames = existsItems.map((item) => item?.token.lexeme).toSet();
+    final argsNames = existsItems.map((item) => item?.lexeme).toSet();
 
     addIssues(checkedItems
-        .where((arg) => !argsNames.contains(arg?.token.lexeme))
+        .where((arg) => !argsNames.contains(arg?.lexeme))
         .whereNotNull()
         .map(issueFactory));
   }
 }
 
-@immutable
 class _NotExistArgsIssue extends IntlBaseIssue {
   const _NotExistArgsIssue(
-    AstNode node,
-  ) : super(node, nameFailure: 'Parameter "args" should be added');
+    super.node,
+  ) : super(nameFailure: 'Parameter "args" should be added');
 }
 
-@immutable
 class _ArgsMustBeOmittedIssue extends IntlBaseIssue {
   const _ArgsMustBeOmittedIssue(
-    AstNode node,
-  ) : super(node, nameFailure: 'Parameter "args" should be removed');
+    super.node,
+  ) : super(nameFailure: 'Parameter "args" should be removed');
 }
 
-@immutable
 class _ArgsItemMustBeOmittedIssue extends IntlBaseIssue {
   const _ArgsItemMustBeOmittedIssue(
-    AstNode node,
-  ) : super(node, nameFailure: 'Item is unused and should be removed');
+    super.node,
+  ) : super(nameFailure: 'Item is unused and should be removed');
 }
 
-@immutable
 class _ParameterMustBeOmittedIssue extends IntlBaseIssue {
   const _ParameterMustBeOmittedIssue(
-    AstNode node,
-  ) : super(node, nameFailure: 'Parameter is unused and should be removed');
+    super.node,
+  ) : super(nameFailure: 'Parameter is unused and should be removed');
 }
 
-@immutable
 class _MustBeSimpleIdentifierIssue extends IntlBaseIssue {
   const _MustBeSimpleIdentifierIssue(
-    AstNode node,
-  ) : super(node, nameFailure: 'Item should be simple identifier');
+    super.node,
+  ) : super(nameFailure: 'Item should be simple identifier');
 }
 
-@immutable
 class _ParameterMustBeInArgsIssue extends IntlBaseIssue {
   const _ParameterMustBeInArgsIssue(
-    AstNode node,
-  ) : super(node, nameFailure: 'Parameter should be added to args');
+    super.node,
+  ) : super(nameFailure: 'Parameter should be added to args');
 }
 
-@immutable
 class _ArgsMustBeInParameterIssue extends IntlBaseIssue {
   const _ArgsMustBeInParameterIssue(
-    AstNode node,
-  ) : super(node, nameFailure: 'Args item should be added to parameters');
+    super.node,
+  ) : super(nameFailure: 'Args item should be added to parameters');
 }
 
-@immutable
 class _InterpolationMustBeInArgsIssue extends IntlBaseIssue {
   const _InterpolationMustBeInArgsIssue(
-    AstNode node,
+    super.node,
   ) : super(
-          node,
           nameFailure: 'Interpolation expression should be added to args',
         );
 }
 
-@immutable
 class _InterpolationMustBeInParameterIssue extends IntlBaseIssue {
   const _InterpolationMustBeInParameterIssue(
-    AstNode node,
+    super.node,
   ) : super(
-          node,
           nameFailure: 'Interpolation expression should be added to parameters',
         );
 }

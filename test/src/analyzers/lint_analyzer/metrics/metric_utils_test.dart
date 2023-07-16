@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/metric_utils.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/models/metric_value_level.dart';
 import 'package:test/test.dart';
@@ -14,7 +13,7 @@ void main() {
       expect(
         documentation(metricId1).toString(),
         equals(
-          'https://dartcodemetrics.dev/docs/metrics/metric-id-1',
+          'https://dcm.dev/docs/metrics/metric-id-1',
         ),
       );
       expect(
@@ -31,7 +30,7 @@ void main() {
       const metricId1Value = 10;
       const metricId2Value = 0.5;
 
-      const _config = {
+      const config = {
         metricId1: '$metricId1Value',
         metricId2: {'threshold': '$metricId2Value'},
         metricId3: '',
@@ -39,20 +38,53 @@ void main() {
       };
 
       expect(
-        readNullableThreshold<int>(_config, metricId1),
+        readNullableThreshold<int>(config, metricId1),
         equals(metricId1Value),
       );
 
       expect(
-        readNullableThreshold<double>(_config, metricId2),
+        readNullableThreshold<double>(config, metricId2),
         equals(metricId2Value),
       );
 
-      expect(readNullableThreshold<int>(_config, metricId3), isNull);
+      expect(readNullableThreshold<int>(config, metricId3), isNull);
 
-      expect(readNullableThreshold<double>(_config, metricId4), isNull);
+      expect(readNullableThreshold<double>(config, metricId4), isNull);
 
-      expect(readNullableThreshold<int>(_config, metricId5), isNull);
+      expect(readNullableThreshold<int>(config, metricId5), isNull);
+    });
+
+    test('readConfigValue returns a value from Map based config', () {
+      const metricId3 = 'metric-id-3';
+      const metricId4 = 'metric-id-4';
+      const metricId5 = 'metric-id-5';
+      const metricId6 = 'metric-id-6';
+
+      const metricId1Value = 10;
+      const metricId2Value = 0.5;
+
+      const config = {
+        metricId1: '$metricId1Value',
+        metricId2: {'value': '$metricId1Value'},
+        metricId3: {'value': '$metricId2Value'},
+        metricId4: {'value': 'message'},
+        metricId5: null,
+      };
+
+      expect(readConfigValue<int>(config, metricId1, 'value'), isNull);
+
+      expect(readConfigValue<int>(config, metricId2, 'value'), equals(10));
+
+      expect(readConfigValue<double>(config, metricId3, 'value'), equals(0.5));
+
+      expect(
+        readConfigValue<String>(config, metricId4, 'value'),
+        equals('message'),
+      );
+
+      expect(readConfigValue<int>(config, metricId5, 'value'), isNull);
+
+      expect(readConfigValue<int>(config, metricId6, 'value'), isNull);
     });
 
     test('valueLevel returns a level of passed value', () {

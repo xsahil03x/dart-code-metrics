@@ -1,4 +1,4 @@
-part of 'no_boolean_literal_compare.dart';
+part of 'no_boolean_literal_compare_rule.dart';
 
 class _Visitor extends RecursiveAstVisitor<void> {
   static const _scannedTokenTypes = {TokenType.EQ_EQ, TokenType.BANG_EQ};
@@ -24,7 +24,5 @@ class _Visitor extends RecursiveAstVisitor<void> {
   }
 
   bool _isTypeBoolean(DartType? type) =>
-      type != null &&
-      type.isDartCoreBool &&
-      type.nullabilitySuffix == NullabilitySuffix.none;
+      type != null && type.isDartCoreBool && !isNullableType(type);
 }

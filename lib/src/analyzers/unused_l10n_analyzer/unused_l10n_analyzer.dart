@@ -1,8 +1,9 @@
 import 'dart:io';
 
+import 'package:analyzer/dart/analysis/analysis_context.dart';
 import 'package:analyzer/dart/analysis/results.dart';
-import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 // ignore: implementation_imports
 import 'package:analyzer/src/dart/element/element.dart';
 import 'package:path/path.dart';
@@ -10,22 +11,26 @@ import 'package:source_span/source_span.dart';
 
 import '../../config_builder/config_builder.dart';
 import '../../config_builder/models/analysis_options.dart';
+import '../../logger/logger.dart';
 import '../../reporters/models/reporter.dart';
 import '../../utils/analyzer_utils.dart';
-import '../../utils/file_utils.dart';
 import 'models/unused_l10n_file_report.dart';
 import 'models/unused_l10n_issue.dart';
 import 'reporters/reporter_factory.dart';
+import 'reporters/unused_l10n_report_params.dart';
+import 'unused_l10n_analysis_config.dart';
 import 'unused_l10n_config.dart';
 import 'unused_l10n_visitor.dart';
 
 /// The analyzer responsible for collecting unused localization reports.
 class UnusedL10nAnalyzer {
-  const UnusedL10nAnalyzer();
+  final Logger? _logger;
+
+  const UnusedL10nAnalyzer([this._logger]);
 
   /// Returns a reporter for the given [name]. Use the reporter
   /// to convert analysis reports to console, JSON or other supported format.
-  Reporter? getReporter({
+  Reporter<UnusedL10nFileReport, UnusedL10NReportParams>? getReporter({
     required String name,
     required IOSink output,
   }) =>
@@ -49,22 +54,16 @@ class UnusedL10nAnalyzer {
     final localizationUsages = <ClassElement, Set<String>>{};
 
     for (final context in collection.contexts) {
-      final analysisOptions = await analysisOptionsFromContext(context) ??
-          await analysisOptionsFromFilePath(rootFolder);
-
-      final contextConfig =
-          ConfigBuilder.getUnusedL10nConfigFromOption(analysisOptions)
-              .merge(config);
       final unusedLocalizationAnalysisConfig =
-          ConfigBuilder.getUnusedL10nConfig(contextConfig, rootFolder);
+          _getAnalysisConfig(context, rootFolder, config);
 
-      final contextFolders = folders
-          .where((path) => normalize(join(rootFolder, path))
-              .startsWith(context.contextRoot.root.path))
-          .toList();
+      if (config.shouldPrintConfig) {
+        _logger?.printConfig(unusedLocalizationAnalysisConfig.toJson());
+      }
 
-      final filePaths = extractDartFilesFromFolders(
-        contextFolders,
+      final filePaths = getFilePaths(
+        folders,
+        context,
         rootFolder,
         unusedLocalizationAnalysisConfig.globalExcludes,
       );
@@ -73,6 +72,8 @@ class UnusedL10nAnalyzer {
           filePaths.intersection(context.contextRoot.analyzedFiles().toSet());
 
       for (final filePath in analyzedFiles) {
+        _logger?.infoVerbose('Analyzing $filePath');
+
         final unit = await context.currentSession.getResolvedUnit(filePath);
 
         _analyzeFile(unit, unusedLocalizationAnalysisConfig.classPattern)
@@ -84,27 +85,24 @@ class UnusedL10nAnalyzer {
           );
         });
       }
-
-      final notAnalyzedFiles = filePaths.difference(analyzedFiles);
-
-      for (final filePath in notAnalyzedFiles) {
-        if (unusedLocalizationAnalysisConfig.analyzerExcludedPatterns
-            .any((pattern) => pattern.matches(filePath))) {
-          final unit = await resolveFile2(path: filePath);
-
-          _analyzeFile(unit, unusedLocalizationAnalysisConfig.classPattern)
-              .forEach((classElement, usages) {
-            localizationUsages.update(
-              classElement,
-              (value) => value..addAll(usages),
-              ifAbsent: () => usages,
-            );
-          });
-        }
-      }
     }
 
     return _checkUnusedL10n(localizationUsages, rootFolder);
+  }
+
+  UnusedL10nAnalysisConfig _getAnalysisConfig(
+    AnalysisContext context,
+    String rootFolder,
+    UnusedL10nConfig config,
+  ) {
+    final analysisOptions = analysisOptionsFromContext(context) ??
+        analysisOptionsFromFilePath(rootFolder, context);
+
+    final contextConfig =
+        ConfigBuilder.getUnusedL10nConfigFromOption(analysisOptions)
+            .merge(config);
+
+    return ConfigBuilder.getUnusedL10nConfig(contextConfig, rootFolder);
   }
 
   Map<ClassElement, Set<String>> _analyzeFile(
@@ -128,32 +126,28 @@ class UnusedL10nAnalyzer {
     final unusedLocalizationIssues = <UnusedL10nFileReport>[];
 
     localizationUsages.forEach((classElement, usages) {
-      final unit = classElement.thisOrAncestorOfType<CompilationUnitElement>();
-      if (unit != null) {
-        final lineInfo = unit.lineInfo;
-        if (lineInfo != null) {
-          final accessorSourceSpans =
-              _getUnusedAccessors(classElement, usages, unit);
-          final methodSourceSpans =
-              _getUnusedMethods(classElement, usages, unit);
+      final report = _getUnusedReports(
+        classElement,
+        usages,
+        rootFolder,
+      );
+      if (report != null) {
+        unusedLocalizationIssues.add(report);
+      }
 
-          final filePath = unit.source.toString();
-          final relativePath = relative(filePath, from: rootFolder);
-
-          final issues = [
-            ...accessorSourceSpans,
-            ...methodSourceSpans,
-          ];
-
-          if (issues.isNotEmpty) {
-            unusedLocalizationIssues.add(
-              UnusedL10nFileReport(
-                path: filePath,
-                relativePath: relativePath,
-                className: classElement.name,
-                issues: issues,
-              ),
-            );
+      final hasCustomSupertype = classElement.allSupertypes.length > 1;
+      if (hasCustomSupertype) {
+        final supertype = classElement.supertype;
+        if (supertype is InterfaceType) {
+          final report = _getUnusedReports(
+            // ignore: deprecated_member_use
+            supertype.element2,
+            usages,
+            rootFolder,
+            overriddenClassName: classElement.name,
+          );
+          if (report != null) {
+            unusedLocalizationIssues.add(report);
           }
         }
       }
@@ -162,41 +156,80 @@ class UnusedL10nAnalyzer {
     return unusedLocalizationIssues;
   }
 
+  UnusedL10nFileReport? _getUnusedReports(
+    InterfaceElement classElement,
+    Iterable<String> usages,
+    String rootFolder, {
+    String? overriddenClassName,
+  }) {
+    final unit = classElement.thisOrAncestorOfType<CompilationUnitElement>();
+    if (unit == null) {
+      return null;
+    }
+
+    final lineInfo = unit.lineInfo;
+    // ignore: unnecessary_null_comparison
+    if (lineInfo == null) {
+      return null;
+    }
+
+    final accessorSourceSpans = _getUnusedAccessors(classElement, usages, unit);
+    final methodSourceSpans = _getUnusedMethods(classElement, usages, unit);
+
+    final filePath = unit.source.toString();
+    final relativePath = relative(filePath, from: rootFolder);
+
+    final issues = [
+      ...accessorSourceSpans,
+      ...methodSourceSpans,
+    ];
+
+    if (issues.isNotEmpty) {
+      return UnusedL10nFileReport(
+        path: filePath,
+        relativePath: relativePath,
+        className: overriddenClassName ?? classElement.name,
+        issues: issues,
+      );
+    }
+
+    return null;
+  }
+
   Iterable<UnusedL10nIssue> _getUnusedAccessors(
-    ClassElement classElement,
+    InterfaceElement classElement,
     Iterable<String> usages,
     CompilationUnitElement unit,
   ) {
     final unusedAccessors = classElement.accessors
-        .where((field) => !usages.contains(field.name))
+        .where((field) => !field.isPrivate && !usages.contains(field.name))
         .map((field) => field.isSynthetic ? field.nonSynthetic : field);
 
     return unusedAccessors
-        .map((accessor) => _createL10nIssues(accessor as ElementImpl, unit))
+        .map((accessor) => _createL10nIssue(accessor as ElementImpl, unit))
         .toList();
   }
 
   Iterable<UnusedL10nIssue> _getUnusedMethods(
-    ClassElement classElement,
+    InterfaceElement classElement,
     Iterable<String> usages,
     CompilationUnitElement unit,
   ) {
     final unusedMethods = classElement.methods
-        .where((method) => !usages.contains(method.name))
+        .where((method) => !method.isPrivate && !usages.contains(method.name))
         .map((method) => method.isSynthetic ? method.nonSynthetic : method);
 
     return unusedMethods
-        .map((method) => _createL10nIssues(method as ElementImpl, unit))
+        .map((method) => _createL10nIssue(method as ElementImpl, unit))
         .toList();
   }
 
-  UnusedL10nIssue _createL10nIssues(
+  UnusedL10nIssue _createL10nIssue(
     ElementImpl element,
     CompilationUnitElement unit,
   ) {
     final offset = element.codeOffset!;
-
-    final lineInfo = unit.lineInfo!;
+    final lineInfo = unit.lineInfo;
     final offsetLocation = lineInfo.getLocation(offset);
 
     final sourceUrl = element.source!.uri;

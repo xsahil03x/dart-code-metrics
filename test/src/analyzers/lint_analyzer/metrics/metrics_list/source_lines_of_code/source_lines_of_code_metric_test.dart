@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/metrics_list/source_lines_of_code/source_lines_of_code_metric.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/models/metric_value_level.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/scope_visitor.dart';
@@ -31,6 +30,7 @@ Future<void> main() async {
 
       expect(metricValue.metricsId, equals(metric.id));
       expect(metricValue.value, equals(1));
+      expect(metricValue.unitType, equals('line'));
       expect(metricValue.level, equals(MetricValueLevel.none));
       expect(
         metricValue.comment,
@@ -56,6 +56,7 @@ Future<void> main() async {
 
       expect(metricValue.metricsId, equals(metric.id));
       expect(metricValue.value, equals(6));
+      expect(metricValue.unitType, equals('lines'));
       expect(metricValue.level, equals(MetricValueLevel.warning));
       expect(
         metricValue.comment,
@@ -81,6 +82,7 @@ Future<void> main() async {
 
       expect(metricValue.metricsId, equals(metric.id));
       expect(metricValue.value, equals(4));
+      expect(metricValue.unitType, equals('lines'));
       expect(metricValue.level, equals(MetricValueLevel.none));
       expect(
         metricValue.comment,

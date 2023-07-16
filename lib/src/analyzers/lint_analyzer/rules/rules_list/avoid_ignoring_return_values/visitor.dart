@@ -1,4 +1,4 @@
-part of 'avoid_ignoring_return_values.dart';
+part of 'avoid_ignoring_return_values_rule.dart';
 
 class _Visitor extends RecursiveAstVisitor<void> {
   final _statements = <ExpressionStatement>[];
@@ -38,6 +38,7 @@ class _Visitor extends RecursiveAstVisitor<void> {
       !_isEmptyFutureOrType(type);
 
   bool _isEmptyType(DartType type) =>
+      // ignore: deprecated_member_use
       type.isBottom || type.isDartCoreNull || type.isVoid;
 
   bool _isEmptyFutureType(DartType type) =>

@@ -1,8 +1,7 @@
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:analyzer/dart/analysis/analysis_context.dart';
-import 'package:meta/meta.dart';
+import 'package:analyzer/dart/analysis/uri_converter.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
@@ -11,8 +10,9 @@ import '../analysis_options_utils.dart';
 
 const _analysisOptionsFileName = 'analysis_options.yaml';
 
-/// Class representing dart analysis options
-@immutable
+const _rootKey = 'dart_code_metrics';
+
+/// Class representing dart analysis options.
 class AnalysisOptions {
   final Map<String, Object> options;
 
@@ -26,10 +26,18 @@ class AnalysisOptions {
     return finalPath == null ? null : p.dirname(finalPath);
   }
 
-  Iterable<String> readIterableOfString(Iterable<String> pathSegments) {
+  String? get fullPath => _path;
+
+  Iterable<String> readIterableOfString(
+    Iterable<String> pathSegments, {
+    bool packageRelated = false,
+  }) {
+    final usedSegments =
+        packageRelated ? [_rootKey, ...pathSegments] : pathSegments;
+
     Object? data = options;
 
-    for (final key in pathSegments) {
+    for (final key in usedSegments) {
       if (data is Map<String, Object> && data.containsKey(key)) {
         data = data[key];
       } else {
@@ -40,10 +48,16 @@ class AnalysisOptions {
     return isIterableOfStrings(data) ? (data as Iterable).cast<String>() : [];
   }
 
-  Map<String, Object> readMap(Iterable<String> pathSegments) {
+  Map<String, Object> readMap(
+    Iterable<String> pathSegments, {
+    bool packageRelated = false,
+  }) {
+    final usedSegments =
+        packageRelated ? [_rootKey, ...pathSegments] : pathSegments;
+
     Object? data = options;
 
-    for (final key in pathSegments) {
+    for (final key in usedSegments) {
       if (data is Map<String, Object?> && data.containsKey(key)) {
         data = data[key];
       } else {
@@ -54,10 +68,16 @@ class AnalysisOptions {
     return data is Map<String, Object> ? data : {};
   }
 
-  Map<String, Map<String, Object>> readMapOfMap(Iterable<String> pathSegments) {
+  Map<String, Map<String, Object>> readMapOfMap(
+    Iterable<String> pathSegments, {
+    bool packageRelated = false,
+  }) {
+    final usedSegments =
+        packageRelated ? [_rootKey, ...pathSegments] : pathSegments;
+
     Object? data = options;
 
-    for (final key in pathSegments) {
+    for (final key in usedSegments) {
       if (data is Map<String, Object?> && data.containsKey(key)) {
         data = data[key];
       } else {
@@ -66,18 +86,32 @@ class AnalysisOptions {
     }
 
     if (data is Iterable<Object>) {
-      return Map.unmodifiable(Map<String, Map<String, Object>>.fromEntries([
-        ...data.whereType<String>().map((node) => MapEntry(node, {})),
-        ...data
-            .whereType<Map<String, Object>>()
-            .where((node) =>
-                node.keys.length == 1 &&
-                node.values.first is Map<String, Object>)
-            .map((node) => MapEntry(
-                  node.keys.first,
-                  node.values.first as Map<String, Object>,
-                )),
-      ]));
+      return Map.unmodifiable(Map<String, Map<String, Object>>.fromEntries(
+        data.fold([], (previousValue, element) {
+          if (element is String) {
+            return [...previousValue, MapEntry(element, <String, Object>{})];
+          }
+
+          if (element is Map<String, Object>) {
+            final hasSingleKey = element.keys.length == 1;
+            final value = element.values.first;
+
+            if (hasSingleKey && value is Map<String, Object> || value is bool) {
+              final updatedValue = value is bool
+                  ? <String, Object>{'enabled': value}
+                  : value as Map<String, Object>;
+
+              return [
+                ...previousValue,
+                MapEntry(element.keys.first, updatedValue),
+              ];
+            }
+          }
+
+          return previousValue;
+        }),
+      )..removeWhere((key, value) =>
+          (value['enabled'] is bool && value['enabled'] == false)));
     } else if (data is Map<String, Object>) {
       final rulesNode = data;
 
@@ -97,28 +131,43 @@ class AnalysisOptions {
   }
 }
 
-Future<AnalysisOptions?> analysisOptionsFromContext(
+AnalysisOptions? analysisOptionsFromContext(
   AnalysisContext context,
-) async {
+) {
   final optionsFilePath = context.contextRoot.optionsFile?.path;
 
   return optionsFilePath == null
       ? null
-      : analysisOptionsFromFile(File(optionsFilePath));
+      : analysisOptionsFromFile(File(optionsFilePath), context);
 }
 
-Future<AnalysisOptions> analysisOptionsFromFilePath(String path) {
+AnalysisOptions analysisOptionsFromFilePath(
+  String path,
+  AnalysisContext context,
+) {
   final analysisOptionsFile = File(p.absolute(path, _analysisOptionsFileName));
 
-  return analysisOptionsFromFile(analysisOptionsFile);
+  return analysisOptionsFromFile(analysisOptionsFile, context);
 }
 
-Future<AnalysisOptions> analysisOptionsFromFile(File? options) async =>
+AnalysisOptions analysisOptionsFromFile(
+  File? options,
+  AnalysisContext context,
+) =>
     options != null && options.existsSync()
-        ? AnalysisOptions(options.path, await _loadConfigFromYamlFile(options))
+        ? AnalysisOptions(
+            options.path,
+            _loadConfigFromYamlFile(
+              options,
+              context.currentSession.uriConverter,
+            ),
+          )
         : const AnalysisOptions(null, {});
 
-Future<Map<String, Object>> _loadConfigFromYamlFile(File options) async {
+Map<String, Object> _loadConfigFromYamlFile(
+  File options,
+  UriConverter converter,
+) {
   try {
     final node = options.existsSync()
         ? loadYamlNode(options.readAsStringSync())
@@ -127,21 +176,49 @@ Future<Map<String, Object>> _loadConfigFromYamlFile(File options) async {
     var optionsNode =
         node is YamlMap ? yamlMapToDartMap(node) : <String, Object>{};
 
-    final includeNode = optionsNode['include'];
-    if (includeNode is String) {
-      final resolvedUri = includeNode.startsWith('package:')
-          ? await Isolate.resolvePackageUri(Uri.parse(includeNode))
-          : Uri.file(p.absolute(p.dirname(options.path), includeNode));
-      if (resolvedUri != null) {
-        final resolvedYamlMap =
-            await _loadConfigFromYamlFile(File.fromUri(resolvedUri));
-        optionsNode =
-            mergeMaps(defaults: resolvedYamlMap, overrides: optionsNode);
-      }
+    final path = optionsNode['include'];
+    if (path is String) {
+      optionsNode =
+          _resolveImportAsOptions(options, converter, path, optionsNode);
+    }
+
+    final rootConfig = optionsNode[_rootKey];
+    final extendedNode =
+        rootConfig is Map<String, Object> ? rootConfig['extends'] : null;
+    final extendConfig = extendedNode is String
+        ? [extendedNode]
+        : extendedNode is Iterable<Object>
+            ? extendedNode.cast<String>()
+            : <String>[];
+    for (final path in extendConfig) {
+      optionsNode =
+          _resolveImportAsOptions(options, converter, path, optionsNode);
     }
 
     return optionsNode;
   } on YamlException catch (e) {
     throw FormatException(e.message, e.span);
   }
+}
+
+Map<String, Object> _resolveImportAsOptions(
+  File options,
+  UriConverter converter,
+  String path,
+  Map<String, Object> optionsNode,
+) {
+  final packageImport = path.startsWith('package:');
+
+  final resolvedUri = packageImport
+      ? converter.uriToPath(Uri.parse(path))
+      : p.absolute(p.dirname(options.path), path);
+
+  if (resolvedUri != null) {
+    final resolvedYamlMap =
+        _loadConfigFromYamlFile(File(resolvedUri), converter);
+
+    return mergeMaps(defaults: resolvedYamlMap, overrides: optionsNode);
+  }
+
+  return optionsNode;
 }

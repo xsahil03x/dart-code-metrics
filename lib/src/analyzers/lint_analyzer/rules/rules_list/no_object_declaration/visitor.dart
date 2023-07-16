@@ -1,4 +1,4 @@
-part of 'no_object_declaration.dart';
+part of 'no_object_declaration_rule.dart';
 
 class _Visitor extends RecursiveAstVisitor<void> {
   final _members = <ClassMember>[];
@@ -25,5 +25,6 @@ class _Visitor extends RecursiveAstVisitor<void> {
 
   bool _hasObjectType(TypeAnnotation? type) =>
       type?.type?.isDartCoreObject ??
+      // ignore: deprecated_member_use
       (type is NamedType && type.name.name == 'Object');
 }

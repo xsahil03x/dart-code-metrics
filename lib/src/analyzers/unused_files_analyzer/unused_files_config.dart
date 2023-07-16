@@ -1,16 +1,17 @@
-import 'package:meta/meta.dart';
-
 import '../../config_builder/models/analysis_options.dart';
 
 /// Represents raw unused files config which can be merged with other raw configs.
-@immutable
 class UnusedFilesConfig {
   final Iterable<String> excludePatterns;
   final Iterable<String> analyzerExcludePatterns;
+  final bool isMonorepo;
+  final bool shouldPrintConfig;
 
   const UnusedFilesConfig({
     required this.excludePatterns,
     required this.analyzerExcludePatterns,
+    required this.isMonorepo,
+    required this.shouldPrintConfig,
   });
 
   /// Creates the config from analysis [options].
@@ -19,13 +20,21 @@ class UnusedFilesConfig {
         excludePatterns: const [],
         analyzerExcludePatterns:
             options.readIterableOfString(['analyzer', 'exclude']),
+        isMonorepo: false,
+        shouldPrintConfig: false,
       );
 
   /// Creates the config from cli args.
-  factory UnusedFilesConfig.fromArgs(Iterable<String> excludePatterns) =>
+  factory UnusedFilesConfig.fromArgs(
+    Iterable<String> excludePatterns, {
+    required bool isMonorepo,
+    required bool shouldPrintConfig,
+  }) =>
       UnusedFilesConfig(
+        shouldPrintConfig: shouldPrintConfig,
         excludePatterns: excludePatterns,
         analyzerExcludePatterns: const [],
+        isMonorepo: isMonorepo,
       );
 
   /// Merges two configs into a single one.
@@ -38,5 +47,7 @@ class UnusedFilesConfig {
           ...analyzerExcludePatterns,
           ...overrides.analyzerExcludePatterns,
         },
+        isMonorepo: isMonorepo || overrides.isMonorepo,
+        shouldPrintConfig: shouldPrintConfig || overrides.shouldPrintConfig,
       );
 }

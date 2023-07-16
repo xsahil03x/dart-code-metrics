@@ -1,5 +1,5 @@
-@TestOn('vm')
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/lint_config.dart';
+import 'package:dart_code_metrics/src/cli/models/parsed_arguments.dart';
 import 'package:dart_code_metrics/src/config_builder/models/analysis_options.dart';
 import 'package:test/test.dart';
 
@@ -44,6 +44,8 @@ const _defaults = LintConfig(
   antiPatterns: {
     'anti-patterns-id1': {},
   },
+  shouldPrintConfig: false,
+  analysisOptionsPath: '',
 );
 
 const _empty = LintConfig(
@@ -53,6 +55,8 @@ const _empty = LintConfig(
   excludeForRulesPatterns: [],
   rules: {},
   antiPatterns: {},
+  shouldPrintConfig: false,
+  analysisOptionsPath: '',
 );
 
 const _merged = LintConfig(
@@ -73,6 +77,8 @@ const _merged = LintConfig(
     'anti-patterns-id1': {},
     'anti-patterns-id2': {'severity': 'error'},
   },
+  shouldPrintConfig: true,
+  analysisOptionsPath: '',
 );
 
 const _overrides = LintConfig(
@@ -89,6 +95,8 @@ const _overrides = LintConfig(
   antiPatterns: {
     'anti-patterns-id2': {'severity': 'error'},
   },
+  shouldPrintConfig: true,
+  analysisOptionsPath: '',
 );
 
 void main() {
@@ -136,6 +144,56 @@ void main() {
       });
     });
 
+    group('fromArgs constructs instance from passed', () {
+      test('empty arguments', () {
+        final config = LintConfig.fromArgs(
+          const ParsedArguments(
+            excludePath: '',
+            metricsConfig: {},
+            rootFolder: '',
+            shouldPrintConfig: false,
+          ),
+        );
+
+        expect(config.excludePatterns, isEmpty);
+        expect(config.excludeForMetricsPatterns, isEmpty);
+        expect(config.metrics, isEmpty);
+        expect(config.excludeForRulesPatterns, isEmpty);
+        expect(config.rules, isEmpty);
+        expect(config.shouldPrintConfig, false);
+      });
+
+      test('data', () {
+        final config = LintConfig.fromArgs(
+          const ParsedArguments(
+            excludePath: 'test/resources/**',
+            metricsConfig: {
+              'cyclomatic-complexity': '5',
+              'halstead-volume': '10',
+              'maximum-nesting-level': '5',
+              'metric-id4': '0',
+            },
+            rootFolder: '',
+            shouldPrintConfig: true,
+          ),
+        );
+
+        expect(config.excludePatterns, equals(['test/resources/**']));
+        expect(config.excludeForMetricsPatterns, isEmpty);
+        expect(
+          config.metrics,
+          equals({
+            'cyclomatic-complexity': '5',
+            'halstead-volume': '10',
+            'maximum-nesting-level': '5',
+          }),
+        );
+        expect(config.excludeForRulesPatterns, isEmpty);
+        expect(config.rules, isEmpty);
+        expect(config.shouldPrintConfig, true);
+      });
+    });
+
     group('merge constructs instance with data from', () {
       test('defaults and empty configs', () {
         final result = _defaults.merge(_empty);
@@ -151,7 +209,9 @@ void main() {
           equals(_defaults.excludeForRulesPatterns),
         );
         expect(result.rules, equals(_defaults.rules));
+        expect(result.shouldPrintConfig, equals(_defaults.shouldPrintConfig));
       });
+
       test('empty and overrides configs', () {
         final result = _empty.merge(_overrides);
 
@@ -166,7 +226,9 @@ void main() {
           equals(_overrides.excludeForRulesPatterns),
         );
         expect(result.rules, equals(_overrides.rules));
+        expect(result.shouldPrintConfig, equals(_overrides.shouldPrintConfig));
       });
+
       test('defaults and overrides configs', () {
         final result = _defaults.merge(_overrides);
 
@@ -181,6 +243,7 @@ void main() {
           equals(_merged.excludeForRulesPatterns),
         );
         expect(result.rules, equals(_merged.rules));
+        expect(result.shouldPrintConfig, equals(_merged.shouldPrintConfig));
       });
     });
   });

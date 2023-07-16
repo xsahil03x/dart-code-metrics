@@ -1,8 +1,5 @@
 // ignore_for_file: public_member_api_docs
 
-import 'package:meta/meta.dart';
-
-@immutable
 class FileMetricsReport {
   final int averageArgumentsCount;
   final int argumentsCountViolations;
@@ -19,6 +16,10 @@ class FileMetricsReport {
   final int averageMaximumNestingLevel;
   final int maximumNestingLevelViolations;
 
+  final double technicalDebt;
+  final int technicalDebtViolations;
+  final String? technicalDebtUnitType;
+
   const FileMetricsReport({
     required this.averageArgumentsCount,
     required this.argumentsCountViolations,
@@ -30,5 +31,8 @@ class FileMetricsReport {
     required this.sourceLinesOfCodeViolations,
     required this.averageMaximumNestingLevel,
     required this.maximumNestingLevelViolations,
+    required this.technicalDebt,
+    required this.technicalDebtViolations,
+    required this.technicalDebtUnitType,
   });
 }

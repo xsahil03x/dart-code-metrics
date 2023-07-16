@@ -16,10 +16,8 @@ import 'halstead_volume_ast_visitor.dart';
 const _documentation = MetricDocumentation(
   name: 'Halstead Volume',
   shortName: 'HALVOL',
-  brief:
-      'The Halstead Volume is based on the Length and the Vocabulary. You can view this as the "bulk" of the code – how much information does the reader of the code have to absorb to understand its meaning. The biggest influence on the Volume metric is the Halstead length which causes a linear increase in the Volume i.e doubling the Length will double the Volume. In the case of the Vocabulary the increase is logarithmic.',
   measuredType: EntityType.methodEntity,
-  recomendedThreshold: 150,
+  recommendedThreshold: 150,
 );
 
 /// Halstead Volume (HALVOL)
@@ -47,18 +45,18 @@ class HalsteadVolumeMetric extends FunctionMetric<double> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   ) {
     final visitor = HalsteadVolumeAstVisitor();
     node.visitChildren(visitor);
 
-    // LTH (length) - the sum of the number of operators and the number of operands
+    // LTH (length) - the sum of the number of operators and the number of operands.
     final lth = visitor.operators + visitor.operands;
 
-    // VOC (vocabulary) – the the number of unique operators and the number of unique operands
+    // VOC (vocabulary) – the the number of unique operators and the number of unique operands.
     final voc = visitor.uniqueOperators + visitor.uniqueOperands;
 
-    // VOL (volume) – based on the length and the vocabulary
+    // VOL (volume) – based on the length and the vocabulary.
     final vol = voc != 0 ? lth * _log2(voc) : 0.0;
 
     return MetricComputationResult<double>(value: vol);

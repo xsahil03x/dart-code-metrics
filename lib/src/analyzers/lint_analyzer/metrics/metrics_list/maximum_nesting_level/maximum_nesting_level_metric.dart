@@ -1,7 +1,7 @@
 import 'package:analyzer/dart/ast/ast.dart';
 
 import '../../../../../utils/node_utils.dart';
-import '../../../../../utils/string_extension.dart';
+import '../../../../../utils/string_extensions.dart';
 import '../../../models/context_message.dart';
 import '../../../models/entity_type.dart';
 import '../../../models/internal_resolved_unit_result.dart';
@@ -17,9 +17,8 @@ import 'nesting_level_visitor.dart';
 const _documentation = MetricDocumentation(
   name: 'Maximum Nesting Level',
   shortName: 'MAXNESTING',
-  brief: 'The maximum nesting level of control structures within a method',
   measuredType: EntityType.methodEntity,
-  recomendedThreshold: 5,
+  recommendedThreshold: 5,
 );
 
 /// Maximum Nesting Level (MAXNESTING)
@@ -45,7 +44,7 @@ class MaximumNestingLevelMetric extends FunctionMetric<int> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   ) {
     final visitor = NestingLevelVisitor(node);
     node.visitChildren(visitor);

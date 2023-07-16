@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/models/replacement.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/models/severity.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/rules/models/rule.dart';
@@ -17,7 +16,7 @@ void main() {
       () {
         const id = 'rule-id';
         final documentationUrl = Uri.parse(
-          'https://dartcodemetrics.dev/docs/rules/flutter/rule-id',
+          'https://dcm.dev/docs/rules/flutter/rule-id',
         );
         const severity = Severity.none;
 
@@ -73,30 +72,13 @@ void main() {
       expect(
         documentation(rule1).toString(),
         equals(
-          'https://dartcodemetrics.dev/docs/rules/flutter/$ruleId1',
+          'https://dcm.dev/docs/rules/flutter/$ruleId1',
         ),
       );
 
       final doc2 = [...documentation(rule2).pathSegments];
       expect(doc2.removeLast(), equals(ruleId2));
       expect(doc2.removeLast(), equals(RuleType.angular.value));
-    });
-
-    group('readExcludes', () {
-      test('returns a list of excludes', () {
-        const excludes = [
-          'hello.dart',
-          'world/**',
-        ];
-
-        expect(readExcludes({'exclude': excludes}), equals(excludes));
-      });
-
-      test('returns an empty list', () {
-        const wrongExcludes = [1, 2];
-
-        expect(readExcludes({'exclude': wrongExcludes}), isEmpty);
-      });
     });
   });
 }

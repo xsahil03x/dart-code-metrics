@@ -1,8 +1,11 @@
 import 'file_report.dart';
 
 /// Abstract reporter interface.
-abstract class Reporter<T extends FileReport, S> {
-  Future<void> report(Iterable<T> records, {Iterable<S> summary = const []});
+abstract class Reporter<Report extends FileReport, Params> {
+  Future<void> report(
+    Iterable<Report> records, {
+    Params? additionalParams,
+  });
 
   const Reporter();
 }

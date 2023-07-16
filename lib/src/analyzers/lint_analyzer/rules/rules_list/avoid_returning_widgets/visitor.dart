@@ -1,4 +1,6 @@
-part of 'avoid_returning_widgets.dart';
+// ignore_for_file: avoid_positional_boolean_parameters
+
+part of 'avoid_returning_widgets_rule.dart';
 
 class _Visitor extends RecursiveAstVisitor<void> {
   final _invocations = <InvocationExpression>[];
@@ -7,12 +9,13 @@ class _Visitor extends RecursiveAstVisitor<void> {
 
   final Iterable<String> _ignoredNames;
   final Iterable<String> _ignoredAnnotations;
+  final bool _allowNullable;
 
   Iterable<InvocationExpression> get invocations => _invocations;
   Iterable<Declaration> get getters => _getters;
   Iterable<Declaration> get globalFunctions => _globalFunctions;
 
-  _Visitor(this._ignoredNames, this._ignoredAnnotations);
+  _Visitor(this._ignoredNames, this._ignoredAnnotations, this._allowNullable);
 
   @override
   void visitFunctionDeclaration(FunctionDeclaration node) {
@@ -22,11 +25,12 @@ class _Visitor extends RecursiveAstVisitor<void> {
 
     final declaration = _visitDeclaration(
       node,
-      node.name,
+      node.name.lexeme,
       node.returnType,
       _ignoredNames,
       _ignoredAnnotations,
       isSetter: node.isSetter,
+      allowNullable: _allowNullable,
     );
 
     if (declaration != null) {
@@ -36,7 +40,7 @@ class _Visitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {
-    final classType = node.extendsClause?.superclass2.type;
+    final classType = node.extendsClause?.superclass.type;
     if (!isWidgetOrSubclass(classType) && !isWidgetStateOrSubclass(classType)) {
       return;
     }
@@ -44,6 +48,7 @@ class _Visitor extends RecursiveAstVisitor<void> {
     final declarationsVisitor = _DeclarationsVisitor(
       _ignoredNames,
       _ignoredAnnotations,
+      _allowNullable,
     );
     node.visitChildren(declarationsVisitor);
 
@@ -52,7 +57,7 @@ class _Visitor extends RecursiveAstVisitor<void> {
         .whereType<String>()
         .toSet();
 
-    final invocationsVisitor = _InvocationsVisitor(names);
+    final invocationsVisitor = _InvocationsVisitor(names, _allowNullable);
     node.visitChildren(invocationsVisitor);
 
     _invocations.addAll(invocationsVisitor.invocations);
@@ -64,17 +69,38 @@ class _InvocationsVisitor extends RecursiveAstVisitor<void> {
   final _invocations = <InvocationExpression>[];
 
   final Set<String> _declarationNames;
+  final bool _allowNullable;
 
   Iterable<InvocationExpression> get invocations => _invocations;
 
-  _InvocationsVisitor(this._declarationNames);
+  _InvocationsVisitor(this._declarationNames, this._allowNullable);
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
     if (_declarationNames.contains(node.methodName.name) &&
-        node.realTarget == null) {
+        node.realTarget == null &&
+        !_isInsideBuilder(node)) {
       _invocations.add(node);
     }
+  }
+
+  bool _isInsideBuilder(MethodInvocation node) {
+    final grandParent = node.parent?.parent;
+    if (grandParent is FunctionExpression &&
+        grandParent.parent is! NamedExpression) {
+      return grandParent.staticParameterElement?.declaration.name == 'builder';
+    }
+
+    final expression = node.thisOrAncestorOfType<NamedExpression>();
+    if (expression is NamedExpression) {
+      final type = expression.staticType;
+      if (type is FunctionType) {
+        return type.returnType is InterfaceType &&
+            _hasWidgetType(type.returnType, _allowNullable);
+      }
+    }
+
+    return false;
   }
 }
 
@@ -84,11 +110,16 @@ class _DeclarationsVisitor extends RecursiveAstVisitor<void> {
 
   final Iterable<String> _ignoredNames;
   final Iterable<String> _ignoredAnnotations;
+  final bool _allowNullable;
 
   Iterable<Declaration> get declarations => _declarations;
   Iterable<Declaration> get getters => _getters;
 
-  _DeclarationsVisitor(this._ignoredNames, this._ignoredAnnotations);
+  _DeclarationsVisitor(
+    this._ignoredNames,
+    this._ignoredAnnotations,
+    this._allowNullable,
+  );
 
   @override
   void visitMethodDeclaration(MethodDeclaration node) {
@@ -96,11 +127,12 @@ class _DeclarationsVisitor extends RecursiveAstVisitor<void> {
 
     final declaration = _visitDeclaration(
       node,
-      node.name,
+      node.name.lexeme,
       node.returnType,
       _ignoredNames,
       _ignoredAnnotations,
       isSetter: node.isSetter,
+      allowNullable: _allowNullable,
     );
 
     if (declaration != null) {
@@ -118,11 +150,12 @@ class _DeclarationsVisitor extends RecursiveAstVisitor<void> {
 
     final declaration = _visitDeclaration(
       node,
-      node.name,
+      node.name.lexeme,
       node.returnType,
       _ignoredNames,
       _ignoredAnnotations,
       isSetter: node.isSetter,
+      allowNullable: _allowNullable,
     );
 
     if (declaration != null) {

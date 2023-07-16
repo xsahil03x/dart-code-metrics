@@ -1,4 +1,4 @@
-part of 'prefer_single_widget_per_file.dart';
+part of 'prefer_single_widget_per_file_rule.dart';
 
 class _Visitor extends SimpleAstVisitor<void> {
   final bool _ignorePrivateWidgets;
@@ -15,9 +15,10 @@ class _Visitor extends SimpleAstVisitor<void> {
   void visitClassDeclaration(ClassDeclaration node) {
     super.visitClassDeclaration(node);
 
-    final classType = node.extendsClause?.superclass2.type;
+    final classType = node.extendsClause?.superclass.type;
     if (isWidgetOrSubclass(classType) &&
-        (!_ignorePrivateWidgets || !Identifier.isPrivateName(node.name.name))) {
+        (!_ignorePrivateWidgets ||
+            !Identifier.isPrivateName(node.name.lexeme))) {
       _nodes.add(node);
     }
   }

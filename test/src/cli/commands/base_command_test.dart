@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:dart_code_metrics/src/cli/commands/base_command.dart';
-import 'package:dart_code_metrics/src/cli/exceptions/arguments_validation_exceptions.dart';
+import 'package:dart_code_metrics/src/cli/exceptions/invalid_argument_exception.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -17,11 +17,11 @@ void main() {
       when(() => result.rest).thenReturn([]);
 
       expect(
-        command.validateTargetDirectories,
+        command.validateTargetDirectoriesOrFiles,
         throwsA(predicate((e) =>
             e is InvalidArgumentException &&
             e.message ==
-                'Invalid number of directories. At least one must be specified.')),
+                'Invalid number of directories or files. At least one must be specified.')),
       );
     });
 
@@ -30,11 +30,12 @@ void main() {
       when(() => result['root-folder'] as String).thenReturn('./');
 
       expect(
-        command.validateTargetDirectories,
+        command.validateTargetDirectoriesOrFiles,
         throwsA(predicate(
           (e) =>
               e is InvalidArgumentException &&
-              e.message == "./bil doesn't exist or isn't a directory.",
+              e.message ==
+                  "./bil doesn't exist or isn't a directory or a file.",
         )),
       );
     });
@@ -70,7 +71,7 @@ void main() {
       () {
         when(() => result['sdk-path'] as String).thenReturn('SDK_PATH');
 
-        expect(command.findSdkPath(), 'SDK_PATH');
+        expect(command.findSdkPath(), equals('SDK_PATH'));
       },
     );
 

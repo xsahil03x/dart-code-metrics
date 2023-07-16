@@ -27,7 +27,7 @@ Issue createIssue({
 /// Returns a url of a page containing documentation associated with [rule]
 Uri documentation(Rule rule) => Uri(
       scheme: 'https',
-      host: 'dartcodemetrics.dev',
+      host: 'dcm.dev',
       pathSegments: [
         'docs',
         'rules',
@@ -35,15 +35,3 @@ Uri documentation(Rule rule) => Uri(
         rule.id,
       ],
     );
-
-/// Returns a list of excludes from the given [config]
-Iterable<String> readExcludes(Map<String, Object> config) {
-  final data = config['exclude'];
-
-  return _isIterableOfStrings(data)
-      ? (data as Iterable).cast<String>()
-      : const <String>[];
-}
-
-bool _isIterableOfStrings(Object? object) =>
-    object is Iterable<Object> && object.every((node) => node is String);

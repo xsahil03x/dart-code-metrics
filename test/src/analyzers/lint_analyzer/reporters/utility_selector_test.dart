@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/metrics_list/number_of_methods_metric.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/metrics_list/number_of_parameters_metric.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/models/metric_documentation.dart';
@@ -19,46 +18,44 @@ void main() {
         LintFileReport(
           path: '/home/developer/work/project/example.dart',
           relativePath: 'example.dart',
+          file: buildReportStub(),
           classes: Map.unmodifiable(<String, Report>{
-            'class': buildRecordStub(metrics: const [
+            'class': buildReportStub(metrics: const [
               MetricValue<int>(
                 metricsId: NumberOfMethodsMetric.metricId,
                 documentation: MetricDocumentation(
                   name: '',
                   shortName: '',
-                  brief: '',
                   measuredType: EntityType.classEntity,
-                  recomendedThreshold: 0,
+                  recommendedThreshold: 0,
                 ),
                 value: 0,
                 level: MetricValueLevel.none,
                 comment: '',
               ),
             ]),
-            'mixin': buildRecordStub(metrics: const [
+            'mixin': buildReportStub(metrics: const [
               MetricValue<int>(
                 metricsId: NumberOfMethodsMetric.metricId,
                 documentation: MetricDocumentation(
                   name: '',
                   shortName: '',
-                  brief: '',
                   measuredType: EntityType.classEntity,
-                  recomendedThreshold: 0,
+                  recommendedThreshold: 0,
                 ),
                 value: 15,
                 level: MetricValueLevel.warning,
                 comment: '',
               ),
             ]),
-            'extension': buildRecordStub(metrics: const [
+            'extension': buildReportStub(metrics: const [
               MetricValue<int>(
                 metricsId: NumberOfMethodsMetric.metricId,
                 documentation: MetricDocumentation(
                   name: '',
                   shortName: '',
-                  brief: '',
                   measuredType: EntityType.classEntity,
-                  recomendedThreshold: 0,
+                  recommendedThreshold: 0,
                 ),
                 value: 25,
                 level: MetricValueLevel.alarm,

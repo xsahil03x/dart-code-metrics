@@ -3,7 +3,7 @@ import 'package:analyzer/dart/ast/syntactic_entity.dart';
 import 'package:analyzer/dart/ast/token.dart';
 
 import '../../../../../utils/node_utils.dart';
-import '../../../../../utils/string_extension.dart';
+import '../../../../../utils/string_extensions.dart';
 import '../../../models/context_message.dart';
 import '../../../models/entity_type.dart';
 import '../../../models/internal_resolved_unit_result.dart';
@@ -19,9 +19,8 @@ import 'cyclomatic_complexity_flow_visitor.dart';
 const _documentation = MetricDocumentation(
   name: 'Cyclomatic Complexity',
   shortName: 'CYCLO',
-  brief: 'The number of linearly-independent paths through a code block',
   measuredType: EntityType.methodEntity,
-  recomendedThreshold: 20,
+  recommendedThreshold: 20,
 );
 
 /// Cyclomatic Complexity (CYCLO)
@@ -46,7 +45,7 @@ class CyclomaticComplexityMetric extends FunctionMetric<int> {
     Iterable<ScopedClassDeclaration> classDeclarations,
     Iterable<ScopedFunctionDeclaration> functionDeclarations,
     InternalResolvedUnitResult source,
-    Iterable<MetricValue<num>> otherMetricsValues,
+    Iterable<MetricValue> otherMetricsValues,
   ) {
     final visitor = CyclomaticComplexityFlowVisitor();
     node.visitChildren(visitor);
@@ -71,7 +70,8 @@ class CyclomaticComplexityMetric extends FunctionMetric<int> {
     InternalResolvedUnitResult source,
   ) =>
       complexityEntities.map((entity) {
-        late String message;
+        String? message;
+
         if (entity is AstNode) {
           message = userFriendlyType(entity.runtimeType).camelCaseToText();
         } else if (entity is Token) {
@@ -79,7 +79,7 @@ class CyclomaticComplexityMetric extends FunctionMetric<int> {
         }
 
         return ContextMessage(
-          message: '${message.capitalize()} increases complexity',
+          message: '${message?.capitalize()} increases complexity',
           location: nodeLocation(node: entity, source: source),
         );
       }).toList()

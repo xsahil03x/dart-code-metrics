@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/metrics_list/cyclomatic_complexity/cyclomatic_complexity_flow_visitor.dart';
 import 'package:dart_code_metrics/src/analyzers/lint_analyzer/metrics/scope_visitor.dart';
 import 'package:test/test.dart';
@@ -36,12 +35,21 @@ Future<void> main() async {
       });
 
       test('empty function', () {
-        final declaration = scopeVisitor.functions.last.declaration;
+        final declaration = scopeVisitor.functions.toList()[2].declaration;
 
         final visitor = CyclomaticComplexityFlowVisitor();
         declaration.visitChildren(visitor);
 
         expect(visitor.complexityEntities, isEmpty);
+      });
+
+      test('function with blocks', () {
+        final declaration = scopeVisitor.functions.toList()[3].declaration;
+
+        final visitor = CyclomaticComplexityFlowVisitor();
+        declaration.visitChildren(visitor);
+
+        expect(visitor.complexityEntities, hasLength(3));
       });
     },
   );

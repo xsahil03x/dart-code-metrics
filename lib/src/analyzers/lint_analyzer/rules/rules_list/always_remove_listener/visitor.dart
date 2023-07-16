@@ -1,4 +1,4 @@
-part of 'always_remove_listener.dart';
+part of 'always_remove_listener_rule.dart';
 
 class _Visitor extends RecursiveAstVisitor<void> {
   final _missingInvocations = <MethodInvocation>[];
@@ -16,7 +16,7 @@ class _Visitor extends RecursiveAstVisitor<void> {
       return;
     }
 
-    switch (node.name.name) {
+    switch (node.name.lexeme) {
       case 'initState':
         {
           final visitor = _ListenableVisitor();
@@ -88,9 +88,10 @@ class _Visitor extends RecursiveAstVisitor<void> {
 
       if (target is PrefixedIdentifier &&
           _isRootWidget(target.prefix.staticType, widgetType)) {
-        final targetName = widgetParameter.identifier != null
+        final name = widgetParameter.name?.lexeme;
+        final targetName = name != null
             ? [
-                widgetParameter.identifier?.name,
+                name,
                 ...(target.name.split('.')..removeAt(0)),
               ].join('.')
             : null;
@@ -142,7 +143,7 @@ class _Visitor extends RecursiveAstVisitor<void> {
 
   MethodDeclaration? _getDisposeMethodDeclaration(ClassDeclaration parent) =>
       parent.members.firstWhereOrNull((member) =>
-              member is MethodDeclaration && member.name.name == 'dispose')
+              member is MethodDeclaration && member.name.lexeme == 'dispose')
           as MethodDeclaration?;
 
   bool _haveSameTargets(
@@ -193,17 +194,19 @@ class _ListenableVisitor extends RecursiveAstVisitor<void> {
   void visitMethodInvocation(MethodInvocation node) {
     super.visitMethodInvocation(node);
 
-    if (node.methodName.name == 'addListener') {
+    final name = node.methodName.name;
+
+    if (name == 'addListener') {
       final type = node.realTarget?.staticType;
       if (isSubclassOfListenable(type)) {
         _addedListeners.add(node);
       }
-    } else if (node.methodName.name == 'removeListener') {
+    } else if (name == 'removeListener') {
       final type = node.realTarget?.staticType;
       if (isSubclassOfListenable(type)) {
         _removedListeners.add(node);
       }
-    } else if (node.methodName.name == 'dispose') {
+    } else if (name == 'dispose') {
       final type = node.realTarget?.staticType;
       if (isSubclassOfListenable(type)) {
         _disposedListeners.add(node);

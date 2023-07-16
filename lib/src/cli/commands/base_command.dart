@@ -7,22 +7,24 @@ import 'package:args/command_runner.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart';
 
-import '../exceptions/arguments_validation_exceptions.dart';
+import '../exceptions/invalid_argument_exception.dart';
 import '../models/flag_names.dart';
 import '../utils/detect_sdk_path.dart';
 
 abstract class BaseCommand extends Command<void> {
   @override
   ArgResults get argResults {
-    if (super.argResults == null) {
+    final results = super.argResults;
+    if (results == null) {
       throw StateError('Unexpected empty args parse result');
     }
 
-    return super.argResults!;
+    return results;
   }
 
-  @override
-  CommandRunner get runner => super.runner as CommandRunner;
+  bool get isNoCongratulate => argResults[FlagNames.noCongratulate] as bool;
+
+  bool get isVerbose => argResults[FlagNames.verbose] as bool;
 
   @override
   Future<void> run() => _verifyThenRunCommand();
@@ -33,7 +35,69 @@ abstract class BaseCommand extends Command<void> {
   void validateCommand() {
     validateRootFolderExist();
     validateSdkPath();
-    validateTargetDirectories();
+    validateTargetDirectoriesOrFiles();
+  }
+
+  void validateRootFolderExist() {
+    final rootFolderPath = argResults[FlagNames.rootFolder] as String;
+    if (!Directory(rootFolderPath).existsSync()) {
+      final exceptionMessage =
+          'Root folder $rootFolderPath does not exist or not a directory.';
+
+      throw InvalidArgumentException(exceptionMessage);
+    }
+  }
+
+  void validateSdkPath() {
+    final sdkPath = argResults[FlagNames.sdkPath] as String?;
+    if (sdkPath != null && !Directory(sdkPath).existsSync()) {
+      final exceptionMessage =
+          'Dart SDK path $sdkPath does not exist or not a directory.';
+
+      throw InvalidArgumentException(exceptionMessage);
+    }
+  }
+
+  void validateTargetDirectoriesOrFiles() {
+    if (argResults.rest.isEmpty) {
+      const exceptionMessage =
+          'Invalid number of directories or files. At least one must be specified.';
+
+      throw const InvalidArgumentException(exceptionMessage);
+    }
+
+    final rootFolderPath = argResults[FlagNames.rootFolder] as String;
+
+    for (final relativePath in argResults.rest) {
+      final absolutePath = join(rootFolderPath, relativePath);
+      if (!Directory(absolutePath).existsSync() &&
+          !File(absolutePath).existsSync()) {
+        final exceptionMessage =
+            "$absolutePath doesn't exist or isn't a directory or a file.";
+
+        throw InvalidArgumentException(exceptionMessage);
+      }
+    }
+  }
+
+  void addCommonFlags() {
+    usesPrintConfig();
+    usesRootFolderOption();
+    usesSdkPathOption();
+    usesExcludeOption();
+    usesCongratulateFlag();
+    usesVerboseFlag();
+  }
+
+  void usesPrintConfig() {
+    argParser
+      ..addSeparator('')
+      ..addFlag(
+        FlagNames.printConfig,
+        abbr: 'c',
+        help: 'Print resolved config.',
+        negatable: false,
+      );
   }
 
   void usesRootFolderOption() {
@@ -60,56 +124,30 @@ abstract class BaseCommand extends Command<void> {
     argParser.addOption(
       FlagNames.exclude,
       help: 'File paths in Glob syntax to be exclude.',
-      valueHelp: '{/**.g.dart,/**.template.dart}',
-      defaultsTo: '{/**.g.dart,/**.template.dart}',
+      valueHelp: '{/**.g.dart,/**.freezed.dart}',
+      defaultsTo: '{/**.g.dart,/**.freezed.dart}',
     );
   }
 
-  void validateRootFolderExist() {
-    final rootFolderPath = argResults[FlagNames.rootFolder] as String;
-    if (!Directory(rootFolderPath).existsSync()) {
-      final _exceptionMessage =
-          'Root folder $rootFolderPath does not exist or not a directory.';
-
-      throw InvalidArgumentException(_exceptionMessage);
-    }
+  void usesCongratulateFlag() {
+    argParser
+      ..addSeparator('')
+      ..addFlag(
+        FlagNames.noCongratulate,
+        help: "Don't show output even when there are no issues.",
+        negatable: false,
+        defaultsTo: false,
+      );
   }
 
-  void validateSdkPath() {
-    final sdkPath = argResults[FlagNames.sdkPath] as String?;
-    if (sdkPath != null && !Directory(sdkPath).existsSync()) {
-      final _exceptionMessage =
-          'Dart SDK path $sdkPath does not exist or not a directory.';
-
-      throw InvalidArgumentException(_exceptionMessage);
-    }
-  }
-
-  void validateTargetDirectories() {
-    if (argResults.rest.isEmpty) {
-      const _exceptionMessage =
-          'Invalid number of directories. At least one must be specified.';
-
-      throw const InvalidArgumentException(_exceptionMessage);
-    }
-
-    final rootFolderPath = argResults[FlagNames.rootFolder] as String;
-
-    for (final relativePath in argResults.rest) {
-      final absolutePath = join(rootFolderPath, relativePath);
-      if (!Directory(absolutePath).existsSync()) {
-        final _exceptionMessage =
-            "$absolutePath doesn't exist or isn't a directory.";
-
-        throw InvalidArgumentException(_exceptionMessage);
-      }
-    }
-  }
-
-  void addCommonFlags() {
-    usesRootFolderOption();
-    usesSdkPathOption();
-    usesExcludeOption();
+  void usesVerboseFlag() {
+    argParser
+      ..addSeparator('')
+      ..addFlag(
+        FlagNames.verbose,
+        help: 'Show verbose logs.',
+        defaultsTo: false,
+      );
   }
 
   String? findSdkPath() =>
@@ -126,8 +164,6 @@ abstract class BaseCommand extends Command<void> {
     } on InvalidArgumentException catch (e) {
       usageException(e.message);
     }
-
-    // TODO(incendial): check deprecated here
 
     return runCommand();
   }

@@ -1,4 +1,4 @@
-part of 'prefer_correct_identifier_length.dart';
+part of 'prefer_correct_identifier_length_rule.dart';
 
 class _Validator {
   final int maxLength;
@@ -11,8 +11,7 @@ class _Validator {
     required this.exceptions,
   });
 
-  bool isValid(SimpleIdentifier identifier) =>
-      _validate(_getNameWithoutUnderscore(identifier.name));
+  bool isValid(String name) => _validate(_getNameWithoutUnderscore(name));
 
   bool _validate(String name) =>
       exceptions.contains(name) ||

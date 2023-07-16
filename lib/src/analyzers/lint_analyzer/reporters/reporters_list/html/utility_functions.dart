@@ -3,7 +3,8 @@ import 'package:html/dom.dart';
 import '../../../models/report.dart';
 import 'components/icon.dart';
 import 'components/report_details_tooltip.dart';
-import 'lint_html_reporter.dart';
+import 'models/icon_type.dart';
+import 'models/report_table_record.dart';
 
 const _violations = 'violations';
 
@@ -19,12 +20,14 @@ Element renderComplexityIcon(Report entityReport, String entityType) =>
 Element renderSummaryMetric(
   String name,
   int metricValue, {
+  String? unitType,
   int violations = 0,
   bool forceViolations = false,
 }) {
   final withViolation = violations > 0;
+  final value = '$metricValue ${unitType ?? ''}'.trim();
   final title = withViolation ? '$name / $_violations' : name;
-  final value = withViolation ? '$metricValue / $violations' : '$metricValue';
+  final fullValue = withViolation ? '$value / $violations' : value;
 
   return Element.tag('div')
     ..classes.addAll([
@@ -36,20 +39,26 @@ Element renderSummaryMetric(
       ..text = '$title : ')
     ..append(Element.tag('span')
       ..classes.add('metrics-total__count')
-      ..text = value);
+      ..text = fullValue);
 }
 
 Element renderTableRecord(ReportTableRecord record) {
+  final report = record.report;
   final recordHaveCyclomaticComplexityViolations =
-      record.report.cyclomaticComplexityViolations > 0;
+      report.cyclomaticComplexityViolations > 0;
   final recordHaveSourceLinesOfCodeViolations =
-      record.report.sourceLinesOfCodeViolations > 0;
+      report.sourceLinesOfCodeViolations > 0;
   final recordHaveMaintainabilityIndexViolations =
-      record.report.maintainabilityIndexViolations > 0;
+      report.maintainabilityIndexViolations > 0;
   final recordHaveArgumentsCountViolations =
-      record.report.argumentsCountViolations > 0;
+      report.argumentsCountViolations > 0;
   final recordHaveMaximumNestingLevelViolations =
-      record.report.maximumNestingLevelViolations > 0;
+      report.maximumNestingLevelViolations > 0;
+  final recordHaveTechDebtViolations =
+      record.report.technicalDebtViolations > 0;
+
+  final averageMaintainabilityIndex =
+      report.averageMaintainabilityIndex.toInt();
 
   return Element.tag('tr')
     ..append(Element.tag('td')
@@ -58,36 +67,41 @@ Element renderTableRecord(ReportTableRecord record) {
         ..text = record.title))
     ..append(Element.tag('td')
       ..text = recordHaveCyclomaticComplexityViolations
-          ? '${record.report.totalCyclomaticComplexity} / ${record.report.cyclomaticComplexityViolations}'
-          : '${record.report.totalCyclomaticComplexity}'
+          ? '${report.totalCyclomaticComplexity} / ${report.cyclomaticComplexityViolations}'
+          : '${report.totalCyclomaticComplexity}'
       ..classes.add(
         recordHaveCyclomaticComplexityViolations ? 'with-violations' : '',
       ))
     ..append(Element.tag('td')
       ..text = recordHaveSourceLinesOfCodeViolations
-          ? '${record.report.totalSourceLinesOfCode} / ${record.report.sourceLinesOfCodeViolations}'
-          : '${record.report.totalSourceLinesOfCode}'
+          ? '${report.totalSourceLinesOfCode} / ${report.sourceLinesOfCodeViolations}'
+          : '${report.totalSourceLinesOfCode}'
       ..classes.add(
         recordHaveSourceLinesOfCodeViolations ? 'with-violations' : '',
       ))
     ..append(Element.tag('td')
       ..text = recordHaveMaintainabilityIndexViolations
-          ? '${record.report.averageMaintainabilityIndex.toInt()} / ${record.report.maintainabilityIndexViolations}'
-          : '${record.report.averageMaintainabilityIndex.toInt()}'
+          ? '$averageMaintainabilityIndex / ${record.report.maintainabilityIndexViolations}'
+          : '$averageMaintainabilityIndex'
       ..classes.add(
         recordHaveMaintainabilityIndexViolations ? 'with-violations' : '',
       ))
     ..append(Element.tag('td')
       ..text = recordHaveArgumentsCountViolations
-          ? '${record.report.averageArgumentsCount} / ${record.report.argumentsCountViolations}'
-          : '${record.report.averageArgumentsCount}'
+          ? '${report.averageArgumentsCount} / ${report.argumentsCountViolations}'
+          : '${report.averageArgumentsCount}'
       ..classes
           .add(recordHaveArgumentsCountViolations ? 'with-violations' : ''))
     ..append(Element.tag('td')
       ..text = recordHaveMaximumNestingLevelViolations
-          ? '${record.report.averageMaximumNestingLevel} / ${record.report.maximumNestingLevelViolations}'
-          : '${record.report.averageMaximumNestingLevel}'
+          ? '${report.averageMaximumNestingLevel} / ${report.maximumNestingLevelViolations}'
+          : '${report.averageMaximumNestingLevel}'
       ..classes.add(
         recordHaveMaximumNestingLevelViolations ? 'with-violations' : '',
+      ))
+    ..append(Element.tag('td')
+      ..text = '${record.report.technicalDebt}'
+      ..classes.add(
+        recordHaveTechDebtViolations ? 'with-violations' : '',
       ));
 }

@@ -1,4 +1,3 @@
-@TestOn('vm')
 import 'dart:io';
 
 import 'package:dart_code_metrics/src/analyzers/unused_l10n_analyzer/reporters/reporters_list/console/unused_l10n_console_reporter.dart';
@@ -15,7 +14,6 @@ void main() {
       const rootDirectory = '';
       const analyzerExcludes = <String>[
         'test/resources/**',
-        'test/resources/unused_files_analyzer/generated/**/**',
         'test/**/examples/**',
       ];
       final folders = [
@@ -33,21 +31,35 @@ void main() {
           config,
         );
 
-        final report = result.single;
+        final report = result.firstWhere((report) => report.issues.length == 3);
         expect(report.className, 'TestI18n');
 
         final firstIssue = report.issues.first;
         expect(firstIssue.memberName, 'getter');
-        expect(firstIssue.location.line, 4);
+        expect(firstIssue.location.line, 6);
         expect(firstIssue.location.column, 3);
 
-        final secondIssues = report.issues.last;
+        final secondIssue = report.issues.elementAt(1);
+        expect(secondIssue.memberName, 'regularGetter');
+        expect(secondIssue.location.line, 15);
+        expect(secondIssue.location.column, 3);
+
+        final thirdIssue = report.issues.elementAt(2);
         expect(
-          secondIssues.memberName,
+          thirdIssue.memberName,
           'secondMethod(String value, num number)',
         );
-        expect(secondIssues.location.line, 8);
-        expect(secondIssues.location.column, 3);
+        expect(thirdIssue.location.line, 10);
+        expect(thirdIssue.location.column, 3);
+
+        final parentReport =
+            result.firstWhere((report) => report.issues.length == 1);
+        expect(parentReport.className, 'TestI18n');
+
+        final firstParentIssue = parentReport.issues.first;
+        expect(firstParentIssue.memberName, 'anotherBaseGetter');
+        expect(firstParentIssue.location.line, 4);
+        expect(firstParentIssue.location.column, 3);
       });
 
       test('should analyze files with custom class pattern', () async {
@@ -65,26 +77,30 @@ void main() {
         final report = result.single;
         expect(report.className, 'S');
 
-        final firstIssue = report.issues.elementAt(0);
+        expect(report.issues, hasLength(4));
+
+        final firstIssue = report.issues.first;
         expect(firstIssue.memberName, 'field');
-        expect(firstIssue.location.line, 13);
+        expect(firstIssue.location.line, 27);
         expect(firstIssue.location.column, 3);
 
-        final secondIssues = report.issues.elementAt(1);
-        expect(
-          secondIssues.memberName,
-          'method(String value)',
-        );
-        expect(secondIssues.location.line, 17);
-        expect(secondIssues.location.column, 3);
+        final secondIssue = report.issues.elementAt(1);
+        expect(secondIssue.memberName, 'regularField');
+        expect(secondIssue.location.line, 44);
+        expect(secondIssue.location.column, 3);
 
-        final thirdIssues = report.issues.elementAt(2);
+        final thirdIssue = report.issues.elementAt(2);
+        expect(thirdIssue.memberName, 'method(String value)');
+        expect(thirdIssue.location.line, 31);
+        expect(thirdIssue.location.column, 3);
+
+        final forthIssue = report.issues.elementAt(3);
         expect(
-          thirdIssues.memberName,
+          forthIssue.memberName,
           'secondMethod(String value, num number)',
         );
-        expect(thirdIssues.location.line, 19);
-        expect(thirdIssues.location.column, 3);
+        expect(forthIssue.location.line, 33);
+        expect(forthIssue.location.column, 3);
       });
 
       test('should report no issues for a custom class name pattern', () async {
@@ -101,6 +117,24 @@ void main() {
 
         expect(result, isEmpty);
       });
+
+      test(
+        'should analyze files with custom class name using extension',
+        () async {
+          final config = _createConfig(
+            analyzerExcludePatterns: analyzerExcludes,
+            classPattern: 'L10nClass',
+          );
+
+          final result = await analyzer.runCliAnalysis(
+            folders,
+            rootDirectory,
+            config,
+          );
+
+          expect(result, isEmpty);
+        },
+      );
 
       test('should return a reporter', () {
         final reporter = analyzer.getReporter(name: 'console', output: stdout);
@@ -120,4 +154,5 @@ UnusedL10nConfig _createConfig({
       excludePatterns: const [],
       analyzerExcludePatterns: analyzerExcludePatterns,
       classPattern: classPattern,
+      shouldPrintConfig: false,
     );

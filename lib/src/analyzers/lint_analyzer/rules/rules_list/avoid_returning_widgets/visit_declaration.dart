@@ -1,12 +1,14 @@
-part of 'avoid_returning_widgets.dart';
+part of 'avoid_returning_widgets_rule.dart';
 
+// ignore: long-parameter-list
 Declaration? _visitDeclaration(
   Declaration node,
-  SimpleIdentifier name,
+  String name,
   TypeAnnotation? returnType,
   Iterable<String> ignoredNames,
   Iterable<String> ignoredAnnotations, {
   required bool isSetter,
+  required bool allowNullable,
 }) {
   final hasIgnoredAnnotation = node.metadata.any(
     (node) =>
@@ -16,11 +18,9 @@ Declaration? _visitDeclaration(
 
   if (!hasIgnoredAnnotation &&
       !isSetter &&
-      !_isIgnored(name.name, ignoredNames)) {
-    final type = returnType?.type;
-    if (type != null && hasWidgetType(type)) {
-      return node;
-    }
+      !_isIgnored(name, ignoredNames) &&
+      _hasWidgetType(returnType?.type, allowNullable)) {
+    return node;
   }
 
   return null;
@@ -31,3 +31,8 @@ bool _isIgnored(
   Iterable<String> ignoredNames,
 ) =>
     name == 'build' || ignoredNames.contains(name);
+
+bool _hasWidgetType(DartType? type, bool allowNullable) =>
+    type != null &&
+    hasWidgetType(type) &&
+    (!allowNullable || (allowNullable && !isNullableType(type)));

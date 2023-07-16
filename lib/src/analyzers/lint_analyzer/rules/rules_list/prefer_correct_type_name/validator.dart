@@ -1,4 +1,4 @@
-part of 'prefer_correct_type_name.dart';
+part of 'prefer_correct_type_name_rule.dart';
 
 class _Validator {
   final int maxLength;
@@ -12,6 +12,7 @@ class _Validator {
   });
 
   bool isValid(String name) =>
+      name.isEmpty ||
       exceptions.contains(name) ||
       (isUpperCase(name) &&
           withoutUnderscore(name).length >= minLength &&

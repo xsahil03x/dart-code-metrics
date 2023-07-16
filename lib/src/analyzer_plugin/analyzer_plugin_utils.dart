@@ -1,12 +1,9 @@
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer_plugin/protocol/protocol_common.dart' as plugin;
 import 'package:analyzer_plugin/protocol/protocol_generated.dart' as plugin;
-import 'package:source_span/source_span.dart';
 
-import '../analyzers/lint_analyzer/lint_analysis_config.dart';
 import '../analyzers/lint_analyzer/models/issue.dart';
 import '../analyzers/lint_analyzer/models/severity.dart';
-import '../config_builder/models/deprecated_option.dart';
 import '../utils/path_utils.dart';
 
 plugin.AnalysisErrorFixes codeIssueToAnalysisErrorFixes(
@@ -14,6 +11,9 @@ plugin.AnalysisErrorFixes codeIssueToAnalysisErrorFixes(
   ResolvedUnitResult? unitResult,
 ) {
   final fileWithIssue = uriToPath(issue.location.sourceUrl) ?? '';
+  final location = issue.location;
+  final locationStart = location.start;
+  final locationEnd = location.end;
 
   return plugin.AnalysisErrorFixes(
     plugin.AnalysisError(
@@ -21,12 +21,12 @@ plugin.AnalysisErrorFixes codeIssueToAnalysisErrorFixes(
       plugin.AnalysisErrorType.LINT,
       plugin.Location(
         fileWithIssue,
-        issue.location.start.offset,
-        issue.location.length,
-        issue.location.start.line,
-        issue.location.start.column,
-        endLine: issue.location.end.line,
-        endColumn: issue.location.end.column,
+        locationStart.offset,
+        location.length,
+        locationStart.line,
+        locationStart.column,
+        endLine: locationEnd.line,
+        endColumn: locationEnd.column,
       ),
       issue.message,
       issue.ruleId,
@@ -43,11 +43,12 @@ plugin.AnalysisErrorFixes codeIssueToAnalysisErrorFixes(
           plugin.SourceChange(issue.suggestion!.comment, edits: [
             plugin.SourceFileEdit(
               fileWithIssue,
-              unitResult.libraryElement.source.modificationStamp,
+              // based on discussion https://groups.google.com/a/dartlang.org/g/analyzer-discuss/c/lfRzX0yw3ZU
+              unitResult.exists ? 0 : -1,
               edits: [
                 plugin.SourceEdit(
-                  issue.location.start.offset,
-                  issue.location.length,
+                  locationStart.offset,
+                  location.length,
                   issue.suggestion!.replacement,
                 ),
               ],
@@ -56,67 +57,6 @@ plugin.AnalysisErrorFixes codeIssueToAnalysisErrorFixes(
         ),
     ],
   );
-}
-
-plugin.AnalysisErrorFixes metricReportToAnalysisErrorFixes(
-  SourceLocation startLocation,
-  int length,
-  String message,
-  String metricId,
-) =>
-    plugin.AnalysisErrorFixes(plugin.AnalysisError(
-      plugin.AnalysisErrorSeverity.INFO,
-      plugin.AnalysisErrorType.LINT,
-      plugin.Location(
-        startLocation.sourceUrl!.path,
-        startLocation.offset,
-        length,
-        startLocation.line,
-        startLocation.column,
-        endLine: startLocation.line,
-        endColumn: startLocation.column,
-      ),
-      message,
-      metricId,
-      hasFix: false,
-    ));
-
-Iterable<plugin.AnalysisErrorFixes> checkConfigDeprecatedOptions(
-  LintAnalysisConfig config,
-  Iterable<DeprecatedOption> deprecatedOptions,
-  String analysisOptionPath,
-) {
-  final ids = {
-    ...config.codeRules.map((rule) => rule.id),
-    ...config.methodsMetrics.map((metric) => metric.id),
-    ...config.antiPatterns.map((pattern) => pattern.id),
-    ...config.metricsConfig.keys,
-  };
-
-  final location =
-      SourceLocation(0, sourceUrl: analysisOptionPath, line: 0, column: 0);
-
-  final documentation = Uri.parse(
-    'https://github.com/dart-code-checker/dart-code-metrics/blob/master/CHANGELOG.md',
-  );
-
-  return deprecatedOptions
-      .where((option) => ids.contains(option.deprecated))
-      .map((option) => codeIssueToAnalysisErrorFixes(
-            Issue(
-              ruleId: 'dart-code-metrics',
-              documentation: documentation,
-              location: SourceSpan(location, location, ''),
-              severity: Severity.warning,
-              message:
-                  '${option.deprecated} deprecated option. This option will be removed in ${option.supportUntilVersion} version.',
-              verboseMessage: option.replacement != null
-                  ? 'Please migrate on ${option.replacement}, and restart analysis server.'
-                  : null,
-            ),
-            null,
-          ))
-      .toList();
 }
 
 const _severityMapping = {
